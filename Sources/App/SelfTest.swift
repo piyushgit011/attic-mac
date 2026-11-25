@@ -10,6 +10,18 @@ enum SelfTest {
             var failures = await run()
             if CommandLine.arguments.contains("--offload") { failures += await offloadTest() }
             if CommandLine.arguments.contains("--icloud") { failures += await iCloudTest() }
+            if let i = CommandLine.arguments.firstIndex(of: "--deepclean"), i + 1 < CommandLine.arguments.count {
+                // Writes what Deep Clean finds under a folder as JSON, for review before anything is moved.
+                let root = URL(fileURLWithPath: CommandLine.arguments[i + 1])
+                let out = i + 2 < CommandLine.arguments.count ? URL(fileURLWithPath: CommandLine.arguments[i + 2]) : nil
+                let found = await Task.detached { DeepCleanScanner.scan(projectRoots: [root], progress: { _ in }, isCancelled: { false }) }.value
+                let rows: [[String: Any]] = found.map { ["path": $0.url.path, "title": $0.title, "detail": $0.detail, "group": $0.group.rawValue,
+                                                          "bytes": $0.bytes, "recommended": $0.recommended, "inUse": $0.inUse,
+                                                          "lastUsedDaysAgo": $0.lastUsed.map { Int(-$0.timeIntervalSinceNow / 86_400) } ?? -1] }
+                let data = try? JSONSerialization.data(withJSONObject: rows, options: [.prettyPrinted, .sortedKeys])
+                if let out, let data { try? data.write(to: out) }
+                print("deep clean: \(found.count) items, \(Fmt.bytes(found.reduce(0) { $0 + $1.bytes }))")
+            }
             if CommandLine.arguments.contains("--fdacheck") {
                 let home = FileManager.default.homeDirectoryForCurrentUser
                 print("Full Disk Access: \(StorageBreakdownModel.checkFullDiskAccess())")

@@ -43,6 +43,8 @@ struct JunkItem: Identifiable, Hashable {
     let bytes: Int64
     let lastUsed: Date?
     let recommended: Bool
+    /// A running app or process lives in (or runs from) this project; moving it now would break that.
+    var inUse = false
     var id: URL { url }
 }
 
@@ -51,7 +53,8 @@ enum DeepCleanScanner {
         var out: [JunkItem] = []
         let fm = FileManager.default
         let home = fm.homeDirectoryForCurrentUser
-        let monthAgo = Date().addingTimeInterval(-30 * 86_400)
+        let weekAgo = Date().addingTimeInterval(-7 * 86_400)
+        let busy = pathsInUse()
 
         // 1. Project folders: node_modules, Python envs, Xcode/SwiftPM build output, Next.js caches.
         for root in projectRoots {
@@ -73,9 +76,14 @@ enum DeepCleanScanner {
                 guard size > 20_000_000 else { continue }
                 let last = lastActivity(of: url)
                 let project = url.deletingLastPathComponent()
-                out.append(JunkItem(url: url, title: "\(project.lastPathComponent) ▸ \(name)",
+                let inUse = busy.contains { $0.hasPrefix(project.path + "/") }
+                // Build caches are always safe to drop; dependencies only once the project has been idle a week.
+                let isCache = kind.contains("build") || kind.contains("cache")
+                var item = JunkItem(url: url, title: "\(project.lastPathComponent) ▸ \(name)",
                                     detail: "\(kind) · \(Fmt.path(project))", group: .projects, bytes: size,
-                                    lastUsed: last, recommended: (last ?? .distantPast) < monthAgo))
+                                    lastUsed: last, recommended: !inUse && (isCache || (last ?? .distantPast) < weekAgo))
+                item.inUse = inUse
+                out.append(item)
             }
         }
 
@@ -154,16 +162,47 @@ enum DeepCleanScanner {
         }
     }
 
+    /// When someone last really worked on the project: the last commit or checkout, or a change to its dependencies.
+    /// (Not `.git/index`: editors rewrite it all the time just to show git status, which made every project look busy.)
     static func lastActivity(of url: URL) -> Date? {
         let project = url.deletingLastPathComponent()
+        let fm = FileManager.default
+        func mtime(_ u: URL) -> Date? { try? u.resourceValues(forKeys: [.contentModificationDateKey]).contentModificationDate }
         var dates: [Date] = []
-        for name in ["package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "Package.swift", "requirements.txt", "pyproject.toml", ".git/index"] {
-            if let d = (try? project.appendingPathComponent(name).resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate {
-                dates.append(d)
+        for name in ["package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "bun.lockb", "Package.swift",
+                     "Package.resolved", "requirements.txt", "pyproject.toml", "poetry.lock", "project.yml", "Podfile.lock"] {
+            if let d = mtime(project.appendingPathComponent(name)) { dates.append(d) }
+        }
+        // Git's reflog moves on commits and checkouts. Worktrees keep it in the main repo's .git/worktrees/<name>.
+        var gitDir = project.appendingPathComponent(".git")
+        if let text = try? String(contentsOf: gitDir, encoding: .utf8), text.hasPrefix("gitdir:") {
+            gitDir = URL(fileURLWithPath: text.dropFirst("gitdir:".count).trimmingCharacters(in: .whitespacesAndNewlines))
+        }
+        if fm.fileExists(atPath: gitDir.path), let d = mtime(gitDir.appendingPathComponent("logs/HEAD")) { dates.append(d) }
+        return dates.max()
+    }
+
+    /// Executables and working folders of this user's running processes, so Deep Clean never pulls a folder out from under one.
+    static func pathsInUse() -> [String] {
+        let uid = getuid()
+        let count = proc_listallpids(nil, 0)
+        guard count > 0 else { return [] }
+        var pids = [pid_t](repeating: 0, count: Int(count) + 64)
+        let n = proc_listallpids(&pids, Int32(pids.count * MemoryLayout<pid_t>.size))
+        var out: [String] = []
+        for pid in pids.prefix(Int(max(0, n))) where pid > 0 {
+            var info = proc_bsdinfo()
+            guard proc_pidinfo(pid, PROC_PIDTBSDINFO, 0, &info, Int32(MemoryLayout<proc_bsdinfo>.size)) == Int32(MemoryLayout<proc_bsdinfo>.size),
+                  info.pbi_uid == uid else { continue }
+            var buf = [CChar](repeating: 0, count: Int(MAXPATHLEN) * 4)
+            if proc_pidpath(pid, &buf, UInt32(buf.count)) > 0 { out.append(String(cString: buf)) }
+            var vinfo = proc_vnodepathinfo()
+            if proc_pidinfo(pid, PROC_PIDVNODEPATHINFO, 0, &vinfo, Int32(MemoryLayout<proc_vnodepathinfo>.size)) > 0 {
+                let cwd = withUnsafeBytes(of: &vinfo.pvi_cdir.vip_path) { raw in String(cString: raw.bindMemory(to: CChar.self).baseAddress!) }
+                if !cwd.isEmpty { out.append(cwd) }
             }
         }
-        if let d = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate { dates.append(d) }
-        return dates.max()
+        return out
     }
 
     static func bigChildren(of dir: URL, group: JunkItem.Group, minBytes: Int64, skip: Set<String>, recommended: Bool,

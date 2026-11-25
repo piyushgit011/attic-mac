@@ -67,7 +67,7 @@ struct DeepCleanView: View {
                                     Text(Fmt.bytes(rows.reduce(0) { $0 + $1.bytes })).monospacedDigit()
                                     if group.canTrash {
                                         Button("Select recommended") {
-                                            for r in rows where r.recommended { m.checked.insert(r.url) }
+                                            for r in rows where r.recommended && !r.inUse { m.checked.insert(r.url) }
                                         }.buttonStyle(.link).font(.caption)
                                     }
                                 }
@@ -120,7 +120,11 @@ struct DeepCleanView: View {
             VStack(alignment: .leading, spacing: 2) {
                 HStack(spacing: 6) {
                     Text(it.title).lineLimit(1)
-                    if it.recommended && it.group.canTrash {
+                    if it.inUse {
+                        Text("In use right now").font(.caption2.weight(.semibold)).padding(.horizontal, 6).padding(.vertical, 2)
+                            .background(.orange.opacity(0.15), in: Capsule()).foregroundStyle(.orange)
+                            .help("An app or process is running from this project. Quit it before cleaning.")
+                    } else if it.recommended && it.group.canTrash {
                         Text("Safe to remove").font(.caption2.weight(.semibold)).padding(.horizontal, 6).padding(.vertical, 2)
                             .background(.green.opacity(0.15), in: Capsule()).foregroundStyle(.green)
                     }

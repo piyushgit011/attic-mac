@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.2.2
+- **Deep Clean judges activity correctly.** It used git's index file, which editors rewrite constantly, so every project looked "used today". It now goes by your last commit or checkout and dependency changes.
+- Build caches (`.next`, Xcode `build/`, Swift `.build`) are always offered, and dependencies once a project has been idle a week.
+- Folders a running app or dev server is using are marked **In use right now** and never selected.
+
 ## 1.2.1
 - Full Disk Access is now detected correctly on recent macOS, so app data like WhatsApp media and Mail is measured once you turn it on.
 
