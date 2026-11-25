@@ -183,6 +183,7 @@ final class NavigationModel {
         }
     }
     var query = SearchQuery()
+    var aiThinking = false
     var selection = Set<URL>()
     var focused: URL?
     var showInspector = false
@@ -203,7 +204,17 @@ final class NavigationModel {
         parseTask = Task { @MainActor in
             try? await Task.sleep(nanoseconds: 180_000_000)
             guard !Task.isCancelled else { return }
-            self.query = QueryParser.parse(text)
+            let rules = QueryParser.parse(text)
+            self.query = rules
+            // Words the rules couldn't place go to Apple's on-device model (never leaves this Mac).
+            guard LocalAI.shouldAsk(rules) else { self.aiThinking = false; return }
+            self.aiThinking = true
+            try? await Task.sleep(nanoseconds: 450_000_000)
+            guard !Task.isCancelled, self.searchText == text else { return }
+            let ai = await LocalAI.understand(text, rules: rules)
+            guard !Task.isCancelled, self.searchText == text else { return }
+            if let ai, !ai.isEmpty { self.query = ai }
+            self.aiThinking = false
         }
     }
 

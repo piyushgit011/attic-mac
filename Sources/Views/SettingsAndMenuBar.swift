@@ -38,6 +38,13 @@ struct SettingsView: View {
                         .onChange(of: quickSearch) { _, _ in QuickSearchController.shared.installHotKey() }
                     Toggle("Read text in screenshots and recent images (on this Mac)", isOn: $ocr)
                 }
+                Section("On-device intelligence") {
+                    Label(LocalAI.statusText, systemImage: "apple.intelligence")
+                    Text("Text recognition uses Apple Vision (the Live Text engine). Search help uses Apple’s on-device language model. Both run on this Mac; nothing is uploaded.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Text("Siri and Shortcuts: “Find files in Attic”, “How much space is left in Attic”, “Free up space with Attic”.")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
             }
             .formStyle(.grouped)
             .tabItem { Label("General", systemImage: "gearshape") }

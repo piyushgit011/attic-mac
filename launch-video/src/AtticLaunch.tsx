@@ -1,5 +1,5 @@
 // Attic launch video (16:9, 54 s) for X. Every product shot is a real recording of Attic running on a
-// made-up demo library (branding/demo); the backdrop, captions, cold open, montage and end card are composed here.
+// made-up demo library (branding/demo); the backdrop, captions, cold open, open-source scene and end card are composed here.
 import React from "react";
 import { AbsoluteFill, Img, Sequence, interpolate, spring, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { Audio, Video } from "@remotion/media";
@@ -150,38 +150,54 @@ const FeatureScene: React.FC<{ feat: Feature; dur: number }> = ({ feat, dur }) =
   );
 };
 
-// ── Montage: the whole app at a glance ────────────────────────────────────────────────────────────────
-const SHOTS = ["01-home", "02-search", "05-cleanup", "07-duplicates", "08-deep-clean", "09-memory", "13-cloud", "15-quick-search", "04-downloaded-from"];
-const Montage: React.FC<{ dur: number }> = ({ dur }) => {
+// ── Open source: the repo in a browser window ───────────────────────────────────────────────────────
+const OpenSource: React.FC<{ dur: number }> = ({ dur }) => {
   const f = useCurrentFrame();
-  const enter = prog(f, 0, sec(0.5));
-  const exit = prog(f, dur - sec(0.4), dur, E.in);
-  const drift = interpolate(f, [0, dur], [0, -120]);
-  const chips = ["Native SwiftUI", "Open source · MIT", "No account", "Cloudflare R2 + iCloud Drive"];
+  const enter = prog(f, 0, sec(0.55), E.outQuint);
+  const exit = prog(f, dur - sec(0.35), dur, E.in);
+  const chips = ["MIT license", "Native SwiftUI", "No account", "No tracking", "On-device AI"];
+  const lines = ["Free and", "open source."];
   return (
     <AbsoluteFill style={{ opacity: 1 - exit }}>
-      <AbsoluteFill style={{ transform: `perspective(1800px) rotateX(24deg) rotateZ(-9deg) translateY(${drift}px) scale(1.25)`, opacity: enter * 0.9 }}>
-        <div style={{ position: "absolute", left: -80, top: -60, display: "grid", gridTemplateColumns: "repeat(3, 700px)", gap: 34 }}>
-          {SHOTS.map((s, i) => {
-            const p = prog(f, sec(0.05 * i), sec(0.4 + 0.05 * i));
-            return <Img key={s} src={staticFile(`shots/${s}.jpg`)} style={{ width: 700, borderRadius: 14, opacity: p,
-              transform: `translateY(${(1 - p) * 60}px)`, boxShadow: "0 30px 60px rgba(0,0,0,0.55)" }} />;
+      <div style={{ position: "absolute", left: 104, top: 0, bottom: 0, width: 640, display: "flex", flexDirection: "column", justifyContent: "center" }}>
+        <div style={{ alignSelf: "flex-start", display: "flex", alignItems: "center", gap: 12, padding: "10px 20px", borderRadius: 999,
+          background: "rgba(255,126,69,0.14)", border: "1px solid rgba(255,160,110,0.45)", fontFamily: INTER, fontWeight: 600, fontSize: 26,
+          color: "#FFB48A", opacity: prog(f, sec(0.1), sec(0.4)) }}>
+          <span>{"</>"}</span>Open source
+        </div>
+        <div style={{ marginTop: 28 }}>
+          {lines.map((l, i) => {
+            const p = prog(f, sec(0.18 + i * 0.12), sec(0.6 + i * 0.12));
+            return <div key={i} style={{ fontFamily: JAKARTA, fontWeight: 800, fontSize: 84, lineHeight: 1.02, letterSpacing: "-0.035em", color: C.ink,
+              opacity: p, transform: `translateY(${(1 - p) * 30}px)` }}>{l}</div>;
           })}
         </div>
-      </AbsoluteFill>
-      <AbsoluteFill style={{ background: "linear-gradient(180deg, rgba(13,9,12,0.15) 0%, rgba(13,9,12,0.85) 70%)" }} />
-      <AbsoluteFill style={{ alignItems: "center", justifyContent: "flex-end", paddingBottom: 130 }}>
-        <div style={{ fontFamily: JAKARTA, fontWeight: 800, fontSize: 96, letterSpacing: "-0.04em", color: C.ink, opacity: prog(f, sec(0.3), sec(0.8)) }}>
-          One app. Gigabytes back.
-        </div>
-        <div style={{ display: "flex", gap: 18, marginTop: 34 }}>
+        <div style={{ marginTop: 24, fontFamily: INTER, fontWeight: 500, fontSize: 30, lineHeight: 1.35, color: C.dim, maxWidth: 560,
+          opacity: prog(f, sec(0.5), sec(0.9)) }}>Read every line, build it yourself, or grab the notarized download.</div>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 12, marginTop: 30, maxWidth: 600 }}>
           {chips.map((c, i) => {
-            const p = prog(f, sec(0.7 + i * 0.12), sec(1.05 + i * 0.12), E.back);
-            return <div key={c} style={{ padding: "14px 26px", borderRadius: 999, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.16)",
-              fontFamily: INTER, fontWeight: 600, fontSize: 28, color: C.ink, opacity: p, transform: `scale(${0.85 + p * 0.15})` }}>{c}</div>;
+            const p = prog(f, sec(0.8 + i * 0.1), sec(1.15 + i * 0.1), E.back);
+            return <div key={c} style={{ padding: "10px 20px", borderRadius: 999, background: "rgba(255,255,255,0.08)", border: "1px solid rgba(255,255,255,0.16)",
+              fontFamily: INTER, fontWeight: 600, fontSize: 24, color: C.ink, opacity: p, transform: `scale(${0.85 + p * 0.15})` }}>{c}</div>;
           })}
         </div>
-      </AbsoluteFill>
+      </div>
+      <div style={{ position: "absolute", left: 790, top: 190, width: 1040, borderRadius: 20, overflow: "hidden", background: "#0d1117",
+        boxShadow: "0 50px 120px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.09)", opacity: enter,
+        transform: `translateX(${(1 - enter) * 160}px) perspective(2000px) rotateY(${(1 - enter) * -10}deg) scale(${interpolate(f, [0, dur], [1, 1.03])})`,
+        transformOrigin: "left center" }}>
+        <div style={{ height: 58, background: "#161b22", display: "flex", alignItems: "center", gap: 10, padding: "0 20px", borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
+          {["#ff5f57", "#febc2e", "#28c840"].map((c) => <div key={c} style={{ width: 14, height: 14, borderRadius: 7, background: c }} />)}
+          <div style={{ marginLeft: 18, flex: 1, height: 34, borderRadius: 10, background: "#0d1117", display: "flex", alignItems: "center", padding: "0 16px",
+            fontFamily: INTER, fontSize: 21, color: "rgba(255,255,255,0.8)" }}>🔒 github.com/piyushgit011/attic-mac</div>
+        </div>
+        <div style={{ padding: "22px 28px 10px", display: "flex", alignItems: "center", gap: 14, fontFamily: INTER, fontSize: 26, color: "#e6edf3" }}>
+          <span style={{ color: "#7d8590" }}>piyushgit011 /</span><b>attic-mac</b>
+          <span style={{ fontSize: 17, padding: "3px 10px", borderRadius: 999, border: "1px solid #30363d", color: "#7d8590" }}>Public</span>
+          <span style={{ marginLeft: "auto", fontSize: 18, color: "#7d8590" }}>⚖ MIT license · Swift 100%</span>
+        </div>
+        <Img src={staticFile("banner.jpg")} style={{ width: "100%", display: "block" }} />
+      </div>
     </AbsoluteFill>
   );
 };
@@ -206,7 +222,7 @@ const EndCard: React.FC = () => {
         github.com/piyushgit011/attic-mac
       </div>
       <div style={{ fontFamily: INTER, fontWeight: 500, fontSize: 28, color: "rgba(255,255,255,0.5)", marginTop: 26, opacity: c }}>
-        Free &amp; open source · macOS 14 or later
+        Free &amp; open source (MIT) · AI that stays on your Mac · macOS 14+
       </div>
     </AbsoluteFill>
   );
@@ -224,7 +240,7 @@ export const AtticLaunch: React.FC = () => {
           <FeatureScene feat={feat} dur={sec(feat.end - feat.start)} />
         </Sequence>
       ))}
-      <Sequence {...range(T.montage[0], T.montage[1])}><Montage dur={sec(T.montage[1] - T.montage[0])} /></Sequence>
+      <Sequence {...range(T.openSource[0], T.openSource[1])}><OpenSource dur={sec(T.openSource[1] - T.openSource[0])} /></Sequence>
       <Sequence {...range(T.end[0], T.end[1])}><EndCard /></Sequence>
       <Audio src={staticFile("music/attic-launch.mp3")} volume={(f) => interpolate(f, [0, 8, TOTAL - sec(1.6), TOTAL], [0, 0.85, 0.85, 0], CLAMP)} />
       {SFX.map((s, i) => (

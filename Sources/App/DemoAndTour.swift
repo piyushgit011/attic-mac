@@ -215,6 +215,26 @@ enum Tour {
                 await cloud.restore(r, open: false, removeFromCloud: true, reveal: false)
             }
             await pause(2.4)
+        case "ai":
+            nav.go(.home); await pause(1)
+            nav.searchText = ""
+            await type("the invoice my accountant emailed me") { nav.searchText = $0 }
+            await waitFor(timeout: 20) { !nav.aiThinking && nav.query.byAI }
+            await pause(1.2)
+            if let first = library.items.first(where: { nav.query.matches($0, ocr: AppState.shared.ocr.texts[$0.path]) }) {
+                nav.selection = [first.url]; nav.focused = first.url; nav.showInspector = true
+            }
+            await pause(2.6)
+            nav.showInspector = false
+            nav.searchText = ""
+            nav.go(.screenshots); await pause(1.2)
+            if let shot = library.items.first(where: { $0.name.contains("09.41.12") }) {
+                nav.selection = [shot.url]; nav.focused = shot.url; await pause(0.8)
+                nav.showInspector = true; await pause(1.4)
+                FileActions.copyText([shot])
+                await pause(3)
+            }
+            nav.showInspector = false; await pause(0.5)
         case "stills":
             await stills()
         default:
@@ -241,6 +261,13 @@ enum Tour {
             nav.selection = [first.url]; nav.focused = first.url; nav.showInspector = true
         }
         await shot("search")
+        nav.showInspector = false
+        nav.searchText = "the invoice my accountant emailed me"
+        await waitFor(timeout: 20) { !nav.aiThinking && nav.query.byAI }
+        if let first = library.items.first(where: { nav.query.matches($0, ocr: AppState.shared.ocr.texts[$0.path]) }) {
+            nav.selection = [first.url]; nav.focused = first.url; nav.showInspector = true
+        }
+        await shot("ai-search")
         nav.showInspector = false
         nav.go(.category(.images)); await shot("images")
         nav.go(.downloadedFrom); await shot("downloaded-from")

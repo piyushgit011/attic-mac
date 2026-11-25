@@ -61,14 +61,15 @@ struct FileBrowserView: View {
         let selected = list.filter { nav.selection.contains($0.url) }
         HStack(alignment: .center, spacing: 12) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(.title2.weight(.semibold))
+                Text(title).font(.title2.weight(.semibold)).lineLimit(1).fixedSize()
                 Text([Fmt.plural(list.count, "item"), Fmt.bytes(total), subtitle].compactMap { $0 }.joined(separator: " · "))
-                    .font(.callout).foregroundStyle(.secondary)
+                    .font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail)
             }
+            .layoutPriority(1)
             Spacer()
             if !selected.isEmpty {
                 Text("\(selected.count) selected · \(Fmt.bytes(selected.reduce(0) { $0 + $1.spaceOnDisk }))")
-                    .font(.callout).foregroundStyle(.secondary)
+                    .font(.callout).foregroundStyle(.secondary).lineLimit(1).fixedSize()
                 if selected.contains(where: { $0.category != .apps && !$0.isPackage && !$0.url.isAtticStub }) {
                     Button { nav.offloadRequest = selected } label: { Label("Offload…", systemImage: "icloud.and.arrow.up") }
                         .help("Move to Cloudflare R2 or iCloud Drive and free the space on this Mac")
@@ -307,7 +308,17 @@ struct ChipsBar: View {
     var body: some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: 8) {
-                Text("Understood as").font(.caption).foregroundStyle(.secondary)
+                if nav.aiThinking {
+                    ProgressView().controlSize(.mini)
+                    Text("Asking Apple Intelligence, on this Mac…").font(.caption).foregroundStyle(.secondary)
+                } else if query.byAI {
+                    Label("Apple Intelligence · on this Mac", systemImage: "apple.intelligence")
+                        .font(.caption.weight(.semibold))
+                        .foregroundStyle(LinearGradient(colors: [.orange, .pink, .purple], startPoint: .leading, endPoint: .trailing))
+                        .help("Understood by Apple’s on-device model. Nothing was sent anywhere.")
+                } else {
+                    Text("Understood as").font(.caption).foregroundStyle(.secondary)
+                }
                 ForEach(query.chips) { chip in
                     HStack(spacing: 5) {
                         Image(systemName: chip.symbol).font(.caption)

@@ -54,7 +54,7 @@ func text(_ ctx: CGContext, _ s: String, _ x: CGFloat, _ y: CGFloat, _ size: CGF
 }
 
 // MARK: Banner (2400 x 1260)
-if FileManager.default.fileExists(atPath: shots.appendingPathComponent("01-home.png").path) {
+if let homeURL = shotURL("home") {
     let W: CGFloat = 2400, H: CGFloat = 1260
     let ctx = canvas(Int(W), Int(H))
     backdrop(ctx, W, H)
@@ -69,7 +69,7 @@ if FileManager.default.fileExists(atPath: shots.appendingPathComponent("01-home.
         ctx.setFillColor(color(0xFF9A5A)); ctx.fillEllipse(in: CGRect(x: 150, y: H - 885 - CGFloat(i) * 62, width: 14, height: 14))
         text(ctx, b, 184, H - 906 - CGFloat(i) * 62, 36, .medium, NSColor(white: 1, alpha: 0.72))
     }
-    let home = load(shots.appendingPathComponent("01-home.png"))
+    let home = load(homeURL)
     let ww: CGFloat = 1300
     let wh = ww * CGFloat(home.height) / CGFloat(home.width)
     window(ctx, home, CGRect(x: W - ww - 90, y: (H - wh) / 2 - 10, width: ww, height: wh), radius: 22)
@@ -77,15 +77,19 @@ if FileManager.default.fileExists(atPath: shots.appendingPathComponent("01-home.
 }
 
 // MARK: Framed screenshots (1800 wide)
+// Shots are matched by label (the number prefix can shift when tours change).
 let framed: [(String, String)] = [
-    ("01-home", "home"), ("02-search", "search"), ("03-images", "library"), ("04-downloaded-from", "downloaded-from"),
-    ("05-cleanup", "cleanup"), ("06-cleanup-review", "cleanup-review"), ("07-duplicates", "duplicates"), ("08-deep-clean", "deep-clean"),
-    ("09-memory", "memory"), ("10-large-files", "large-files"), ("11-offload-sheet-icloud", "offload-icloud"),
-    ("12-offload-sheet-r2", "offload-r2"), ("13-cloud", "cloud"), ("14-offloaded", "offloaded"), ("15-quick-search", "quick-search"),
+    ("home", "home"), ("search", "search"), ("ai-search", "ai-search"), ("images", "library"), ("downloaded-from", "downloaded-from"),
+    ("cleanup", "cleanup"), ("cleanup-review", "cleanup-review"), ("duplicates", "duplicates"), ("deep-clean", "deep-clean"),
+    ("memory", "memory"), ("large-files", "large-files"), ("offload-sheet-icloud", "offload-icloud"),
+    ("offload-sheet-r2", "offload-r2"), ("cloud", "cloud"), ("offloaded", "offloaded"), ("quick-search", "quick-search"),
 ]
+func shotURL(_ label: String) -> URL? {
+    let files = (try? FileManager.default.contentsOfDirectory(atPath: shots.path)) ?? []
+    return files.first { $0.hasSuffix("-\(label).png") && $0.dropFirst(3) == "\(label).png" }.map { shots.appendingPathComponent($0) }
+}
 for (src, name) in framed {
-    let url = shots.appendingPathComponent("\(src).png")
-    guard FileManager.default.fileExists(atPath: url.path) else { continue }
+    guard let url = shotURL(src) else { continue }
     let img = load(url)
     let W: CGFloat = 1800
     let pad: CGFloat = 90

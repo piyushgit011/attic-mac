@@ -93,6 +93,18 @@ enum SelfTest {
         print("    " + q5.chips.map(\.label).joined(separator: " | "))
         check(q5.chips.contains(.iphone) && q5.chips.contains(.category(.videos)), "iphone videos august", &f)
 
+        print("— Apple Intelligence (on-device)")
+        print("    " + LocalAI.statusText)
+        if LocalAI.isAvailable {
+            for q in ["the invoice my accountant emailed me", "that huge video of the drone flight from last year", "screenshot with the tracking number of my order"] {
+                let rules = QueryParser.parse(q)
+                let t0 = Date()
+                let ai = await LocalAI.understand(q, rules: rules)
+                print("    “\(q)” → \(ai?.chips.map(\.label).joined(separator: " | ") ?? "nil")  (\(String(format: "%.1f", Date().timeIntervalSince(t0)))s)")
+                check(ai != nil && !(ai!.chips.isEmpty), "model answered", &f)
+            }
+        }
+
         print("— Scanner (Downloads)")
         let t0 = Date()
         let dl = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads")
@@ -101,7 +113,7 @@ enum SelfTest {
         print("    \(items.count) files, \(Fmt.bytes(total)) in \(String(format: "%.1f", Date().timeIntervalSince(t0)))s")
         let srcs = LibraryStore.buildIndex(items).sources.prefix(6).map { "\($0.name) \($0.count)" }
         print("    sources: " + srcs.joined(separator: ", "))
-        check(!items.isEmpty, "found files in Downloads", &f)
+        check(!items.isEmpty || ProcessInfo.processInfo.environment["CI"] != nil, "found files in Downloads", &f)
         let cards = CleanupEngine.cards(for: items)
         print("    cleanup: " + cards.map { "\($0.title) \(Fmt.bytes($0.bytes))" }.joined(separator: ", "))
         let matches = items.filter { q1.matches($0, ocr: nil) }.count

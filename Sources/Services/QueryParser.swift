@@ -85,6 +85,8 @@ enum SearchChip: Hashable, Identifiable {
 
 struct SearchQuery: Equatable {
     var chips: [SearchChip] = []
+    /// Filled in by Apple Intelligence on this Mac rather than by Attic's rules.
+    var byAI = false
     var isEmpty: Bool { chips.isEmpty }
     var wantsOCR: Bool { chips.contains { if case .text = $0 { return true } else { return false } } }
 
@@ -98,7 +100,7 @@ struct SearchQuery: Equatable {
     }
 
     func removing(_ chip: SearchChip) -> SearchQuery {
-        SearchQuery(chips: chips.filter { $0 != chip })
+        SearchQuery(chips: chips.filter { $0 != chip }, byAI: byAI)
     }
 }
 

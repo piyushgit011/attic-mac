@@ -7,10 +7,18 @@
   <img alt="macOS 14+" src="https://img.shields.io/badge/macOS-14%2B-111111?style=for-the-badge&logo=apple">
   <img alt="Native SwiftUI" src="https://img.shields.io/badge/SwiftUI-native-F05138?style=for-the-badge&logo=swift&logoColor=white">
   <a href="LICENSE"><img alt="MIT license" src="https://img.shields.io/github/license/piyushgit011/attic-mac?color=ee4472&style=for-the-badge"></a>
+  <a href="https://github.com/piyushgit011/attic-mac/actions/workflows/build.yml"><img alt="Build" src="https://img.shields.io/github/actions/workflow/status/piyushgit011/attic-mac/build.yml?branch=main&style=for-the-badge&label=build"></a>
 </p>
 
 <p align="center">
-  <b>Attic is a Mac app for when your disk is almost full.</b><br>
+  <a href="https://piyushgit011.github.io/attic-mac/"><b>Website</b></a> ·
+  <a href="https://github.com/piyushgit011/attic-mac/releases/latest/download/Attic.dmg"><b>Download</b></a> ·
+  <a href="CHANGELOG.md">Changelog</a> ·
+  <a href="CONTRIBUTING.md">Contributing</a>
+</p>
+
+<p align="center">
+  <b>Attic is a free, open-source Mac app for when your disk is almost full.</b><br>
   It shows you what's taking the space, finds what you can safely clear,<br>
   and moves big files you want to keep to <b>Cloudflare R2</b> or <b>iCloud Drive</b>, leaving a placeholder you can double-click to bring them back.
 </p>
@@ -88,6 +96,16 @@ Files already in iCloud (Desktop & Documents) just get **Remove Download**: they
 
 The R2 browser also works on its own, like a Finder window for your bucket: upload by drag and drop, download, make folders, and copy private links that expire after 7 days.
 
+### ✺ AI that stays on your Mac
+
+Attic uses the intelligence that already ships with macOS, and nothing is ever sent anywhere:
+
+- **Apple Intelligence (on-device model).** When a search has words Attic's rules can't place, like "the invoice my accountant emailed me", Apple's local model turns it into filters (Documents · From Gmail · "invoice"). The chips show **Apple Intelligence · on this Mac** when it helped. This needs macOS 26 with Apple Intelligence on; without it, search still works.
+- **Apple Vision (the Live Text engine)** reads the text in your screenshots and recent images, so you can search it, see it in the inspector, and copy it with **⇧⌘C** or the Copy Text button.
+- **Siri & Shortcuts:** "Find files in Attic", "How much space is left in Attic", "Free up space with Attic".
+
+<p align="center"><img src="docs/images/ai-search.jpg" alt="Apple Intelligence search on this Mac" width="90%"></p>
+
 ### ⌘ Quick Search, from any app
 
 Press **⇧⌘Space** anywhere for a small search panel that understands the same plain English. Press **↩** to open, **⌥↩** to show in Finder, or **⌘↩** to show in Attic. Attic's menu bar icon also lists your last ten downloads, ready to drag into Mail or Slack.
@@ -116,10 +134,14 @@ Other buckets on the same account are **read-only** in Attic unless you turn on 
 
 ## Privacy and safety
 
-- Your files are never uploaded unless **you** offload them. Text recognition and duplicate detection run on your Mac.
+- Your files are never uploaded unless **you** offload them. Text recognition (Apple Vision), search help (Apple Intelligence's on-device model) and duplicate detection all run on your Mac.
 - Nothing is deleted outright. Clean Up, Duplicates and Deep Clean move things to the Trash, and offloading removes a local copy only after the upload checks out.
 - iCloud-only files aren't using space on your Mac, so Attic labels them and doesn't count them toward what you can free.
 - No account and no analytics. The only network traffic goes to the R2 bucket you set up.
+
+## Open source
+
+Attic is MIT licensed and has no server, account or tracking. Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), and report security issues privately as described in [SECURITY.md](SECURITY.md). Every push is built and self-tested on a GitHub Mac runner.
 
 ## Build from source
 
@@ -136,7 +158,7 @@ open build/dd/Build/Products/Release/Attic.app
 
 ```bash
 APP=build/dd/Build/Products/Release/Attic.app/Contents/MacOS/Attic
-$APP --selftest                                  # search parser, scanner, memory & swap
+$APP --selftest                                  # search parser, on-device AI, scanner, memory & swap
 $APP --selftest --r2                             # R2: multipart upload, download check, private link, delete
 $APP --selftest --r2 --connect --offload         # + Keychain + offload to R2 and restore from a placeholder
 $APP --selftest --icloud                         # offload to iCloud Drive, wait for upload, free, restore
@@ -158,13 +180,14 @@ cd launch-video && npm install && npm run render       # the launch video (Remot
 
 ```
 Sources/
-  App/        app entry, navigation, commands, self-tests, demo mode & tours
+  App/        app entry, navigation, Siri & Shortcuts, self-tests, demo mode & tours
   Model/      file items, categories, formatting
-  Services/   scanner, search parser, Clean Up, Duplicates, Deep Clean, OCR, thumbnails, memory & swap
+  Services/   scanner, search parser, on-device AI (Apple Intelligence), Clean Up, Duplicates, Deep Clean, OCR, memory & swap
   Cloud/      R2 client (AWS Signature V4, multipart, presigned links), offload/restore, iCloud Drive
   Views/      SwiftUI screens
 branding/     logo renderer, README art, demo library and recording tools
 launch-video/ Remotion project for the launch video
+docs/         website (GitHub Pages) and README images
 ```
 
 ## License
