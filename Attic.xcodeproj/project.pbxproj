@@ -11,11 +11,13 @@
 		0C9F01A3FD7736DCB2547421 /* CloudStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3105700AC48CDE97BDAA79CF /* CloudStore.swift */; };
 		2930274FC16328E5C556DB6B /* LocalAI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66D94E96447199E938451E74 /* LocalAI.swift */; };
 		2A1F4E836416828E57DC593B /* QueryParser.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4ABC6E982BB1B38316D561EC /* QueryParser.swift */; };
+		2AF501FDFDAAFF1893649452 /* StorageView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 900954B9F810621ADC1DEF3E /* StorageView.swift */; };
 		30B0B9C96ADC6570FED9E0CF /* CleanupViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8E178DFA155DF035C6C7CC5 /* CleanupViews.swift */; };
 		49EF48B75FA316A0AC61A458 /* Scanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = 42DC4EB0F04BFBED89A70E7A /* Scanner.swift */; };
 		51B3805DD15D6F87CBFCBEC2 /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87DAF852284536D743B18BAF /* LibraryStore.swift */; };
 		5739CC65848AC1F354DF4540 /* Cleanup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406EA6BF724DAF955FC89D9F /* Cleanup.swift */; };
 		5B782277F0BA5466019FAB58 /* MemoryMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BD2E78FB130F7EF2F1C2677 /* MemoryMonitor.swift */; };
+		6B5135B37755154B323F52D9 /* StorageBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3077D3B6E43C6975E6D36101 /* StorageBreakdown.swift */; };
 		74006FCFAB8F9113FC02EEAA /* Intents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9759E52B5F21B46675508601 /* Intents.swift */; };
 		7731CD432BEE14117DDA4883 /* R2Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D3D3D8C8478C08537624EBF /* R2Client.swift */; };
 		8DDF7C08DC72F9DAD3D2570D /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 02E58024979B11C9110562BE /* Assets.xcassets */; };
@@ -39,6 +41,7 @@
 		02E58024979B11C9110562BE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0E20A76E86C8A6F53C759658 /* FileBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileBrowserView.swift; sourceTree = "<group>"; };
 		2D3D3D8C8478C08537624EBF /* R2Client.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = R2Client.swift; sourceTree = "<group>"; };
+		3077D3B6E43C6975E6D36101 /* StorageBreakdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageBreakdown.swift; sourceTree = "<group>"; };
 		3105700AC48CDE97BDAA79CF /* CloudStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStore.swift; sourceTree = "<group>"; };
 		3EC8EF0ED878C8B38AF2CF29 /* CloudViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudViews.swift; sourceTree = "<group>"; };
 		406EA6BF724DAF955FC89D9F /* Cleanup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cleanup.swift; sourceTree = "<group>"; };
@@ -54,6 +57,7 @@
 		87DAF852284536D743B18BAF /* LibraryStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LibraryStore.swift; sourceTree = "<group>"; };
 		88D33D6FA19094724245AE91 /* DeepClean.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepClean.swift; sourceTree = "<group>"; };
 		8C7D48560E8B3C6510A3B758 /* InspectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InspectorView.swift; sourceTree = "<group>"; };
+		900954B9F810621ADC1DEF3E /* StorageView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageView.swift; sourceTree = "<group>"; };
 		9759E52B5F21B46675508601 /* Intents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Intents.swift; sourceTree = "<group>"; };
 		98896739667C913C3709D1C8 /* SettingsAndMenuBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsAndMenuBar.swift; sourceTree = "<group>"; };
 		9A0F23EAF419F75CAA05F52C /* DeepCleanAndMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepCleanAndMemory.swift; sourceTree = "<group>"; };
@@ -115,6 +119,7 @@
 				8C7D48560E8B3C6510A3B758 /* InspectorView.swift */,
 				98896739667C913C3709D1C8 /* SettingsAndMenuBar.swift */,
 				66606B682618DAA637004D08 /* SortKeys.swift */,
+				900954B9F810621ADC1DEF3E /* StorageView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -159,6 +164,7 @@
 				A231D6FD8451CA530DC40295 /* OCRAndThumbnails.swift */,
 				4ABC6E982BB1B38316D561EC /* QueryParser.swift */,
 				42DC4EB0F04BFBED89A70E7A /* Scanner.swift */,
+				3077D3B6E43C6975E6D36101 /* StorageBreakdown.swift */,
 			);
 			path = Services;
 			sourceTree = "<group>";
@@ -259,6 +265,8 @@
 				F1CF62B9D7E3401D5A0F7585 /* SelfTest.swift in Sources */,
 				93F778CDD0CF9D04407DCDF3 /* SettingsAndMenuBar.swift in Sources */,
 				B256C761617EC42BEDAFA550 /* SortKeys.swift in Sources */,
+				6B5135B37755154B323F52D9 /* StorageBreakdown.swift in Sources */,
+				2AF501FDFDAAFF1893649452 /* StorageView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -301,7 +309,7 @@
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = ZMNA9Z2VN7;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -322,7 +330,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -370,7 +378,7 @@
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 2;
+				CURRENT_PROJECT_VERSION = 3;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = ZMNA9Z2VN7;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -385,7 +393,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.1.0;
+				MARKETING_VERSION = 1.2.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

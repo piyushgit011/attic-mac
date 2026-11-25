@@ -142,13 +142,16 @@ struct HomeView: View {
 struct StorageCard: View {
     @Environment(LibraryStore.self) private var library
     @Environment(MemoryMonitor.self) private var memory
+    @Environment(NavigationModel.self) private var nav
+    private var breakdown: StorageBreakdownModel { AppState.shared.storage }
 
     var body: some View {
         let disk = library.disk
         let cats = FileCategory.allCases.filter { (library.totals[$0]?.bytes ?? 0) > 0 }
         let indexed = cats.reduce(Int64(0)) { $0 + (library.totals[$1]?.bytes ?? 0) }
         let swap = Int64(memory.snapshot.swapFilesOnDisk)
-        let systemAndOther = max(0, disk.used - indexed - swap)
+        let rest = breakdown.buckets.filter { $0.kind != .files }
+        let unmeasured = max(0, disk.used - indexed - (rest.isEmpty ? swap : rest.reduce(0) { $0 + $1.bytes }))
         VStack(alignment: .leading, spacing: 12) {
             HStack(alignment: .firstTextBaseline) {
                 Text(Fmt.bytes(disk.available)).font(.system(size: 34, weight: .bold, design: .rounded))
@@ -158,28 +161,44 @@ struct StorageCard: View {
                     .foregroundStyle(disk.usedFraction > 0.9 ? .red : disk.usedFraction > 0.8 ? .orange : .secondary)
             }
             GeometryReader { geo in
+                let w = { (b: Int64) in max(2, geo.size.width * CGFloat(b) / CGFloat(max(1, disk.total))) }
                 HStack(spacing: 2) {
-                    ForEach(cats) { c in
-                        let b = library.totals[c]?.bytes ?? 0
-                        Rectangle().fill(c.tint.gradient).frame(width: max(2, geo.size.width * CGFloat(b) / CGFloat(max(1, disk.total))))
+                    ForEach(cats) { c in Rectangle().fill(c.tint.gradient).frame(width: w(library.totals[c]?.bytes ?? 0)) }
+                    if rest.isEmpty {
+                        if swap > 0 { Rectangle().fill(Color.purple.gradient).frame(width: w(swap)) }
+                    } else {
+                        ForEach(rest) { b in Rectangle().fill(b.tint.gradient).frame(width: w(b.bytes)) }
                     }
-                    if swap > 0 {
-                        Rectangle().fill(Color.indigo.gradient).frame(width: max(2, geo.size.width * CGFloat(swap) / CGFloat(max(1, disk.total))))
-                    }
-                    Rectangle().fill(Color.gray.opacity(0.5)).frame(width: max(0, geo.size.width * CGFloat(systemAndOther) / CGFloat(max(1, disk.total))))
+                    if unmeasured > 0 && rest.isEmpty { Rectangle().fill(Color.gray.opacity(0.5)).frame(width: w(unmeasured)) }
                     Rectangle().fill(.quaternary)
                 }
             }
             .frame(height: 16)
             .clipShape(RoundedRectangle(cornerRadius: 5))
-            HStack(spacing: 14) {
+            .onTapGesture { nav.go(.storage) }
+            FlowLegend {
                 ForEach(cats) { c in legend(c.title, c.tint, library.totals[c]?.bytes ?? 0) }
-                if swap > 0 { legend("Swap", .indigo, swap) }
-                legend("System, apps’ data & other", .gray, systemAndOther)
+                if rest.isEmpty {
+                    if swap > 0 { legend("Swap", .purple, swap) }
+                    Button { nav.go(.storage) } label: {
+                        HStack(spacing: 5) {
+                            Circle().fill(Color.gray).frame(width: 8, height: 8)
+                            Text(breakdown.isMeasuring ? "System & other: measuring…" : "System & other").foregroundStyle(.secondary)
+                            Text(Fmt.bytes(unmeasured)).monospacedDigit()
+                            Image(systemName: "chevron.right").font(.caption2).foregroundStyle(.secondary)
+                        }
+                    }
+                    .buttonStyle(.plain).help("See what’s inside")
+                } else {
+                    ForEach(rest) { b in
+                        Button { nav.go(.storage) } label: { legend(b.title, b.tint, b.bytes) }.buttonStyle(.plain)
+                    }
+                }
             }
             .font(.caption)
         }
         .card()
+        .onAppear { breakdown.measureIfStale() }
     }
 
     private func legend(_ title: String, _ color: Color, _ bytes: Int64) -> some View {
@@ -189,5 +208,35 @@ struct StorageCard: View {
             Text(Fmt.bytes(bytes)).monospacedDigit()
         }
         .lineLimit(1)
+    }
+}
+
+/// Lays legend items out in rows that wrap, so nothing gets truncated.
+struct FlowLegend: Layout {
+    var spacing: CGFloat = 14
+    var lineSpacing: CGFloat = 6
+
+    func sizeThatFits(proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) -> CGSize {
+        let maxW = proposal.width ?? .infinity
+        var x: CGFloat = 0, y: CGFloat = 0, lineH: CGFloat = 0, widest: CGFloat = 0
+        for v in subviews {
+            let s = v.sizeThatFits(.unspecified)
+            if x > 0 && x + s.width > maxW { y += lineH + lineSpacing; x = 0; lineH = 0 }
+            x += s.width + spacing
+            lineH = max(lineH, s.height)
+            widest = max(widest, x - spacing)
+        }
+        return CGSize(width: min(widest, maxW), height: y + lineH)
+    }
+
+    func placeSubviews(in bounds: CGRect, proposal: ProposedViewSize, subviews: Subviews, cache: inout ()) {
+        var x = bounds.minX, y = bounds.minY, lineH: CGFloat = 0
+        for v in subviews {
+            let s = v.sizeThatFits(.unspecified)
+            if x > bounds.minX && x + s.width > bounds.maxX { y += lineH + lineSpacing; x = bounds.minX; lineH = 0 }
+            v.place(at: CGPoint(x: x, y: y), proposal: ProposedViewSize(s))
+            x += s.width + spacing
+            lineH = max(lineH, s.height)
+        }
     }
 }

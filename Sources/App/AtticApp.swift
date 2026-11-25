@@ -46,11 +46,12 @@ final class AppState {
     let memory = MemoryMonitor()
     let deepClean = DeepCleanModel()
     let dupes = DuplicatesModel()
+    let storage = StorageBreakdownModel()
     let cloud: CloudStore
 
     private init() {
         cloud = CloudStore(transfers: transfers, library: library)
-        let starts: [String: SidebarItem] = ["cloud": .cloud, "deepClean": .deepClean, "memory": .memory, "cleanup": .cleanup,
+        let starts: [String: SidebarItem] = ["storage": .storage, "cloud": .cloud, "deepClean": .deepClean, "memory": .memory, "cleanup": .cleanup,
                                              "duplicates": .duplicates, "offloaded": .offloaded, "downloads": .downloadedFrom,
                                              "large": .largeFiles, "images": .category(.images)]
         if let s = UserDefaults.standard.string(forKey: "AtticStart"), let item = starts[s] { nav.setInitial(item) }
@@ -93,7 +94,7 @@ enum SidebarItem: Hashable {
     case home, recents, downloadedFrom, source(String)
     case category(FileCategory)
     case largeFiles, screenshots
-    case cleanup, cleanupCard(CleanupCard.Kind), duplicates, deepClean, memory
+    case storage, cleanup, cleanupCard(CleanupCard.Kind), duplicates, deepClean, memory
     case cloud, offloaded
 }
 
@@ -275,6 +276,7 @@ struct AtticCommands: Commands {
             Divider()
             Button("Home") { AppState.shared.nav.go(.home) }.keyboardShortcut("h", modifiers: [.command, .shift])
             Button("Downloaded From") { AppState.shared.nav.go(.downloadedFrom) }.keyboardShortcut("j", modifiers: [.command, .shift])
+            Button("Storage") { AppState.shared.nav.go(.storage) }.keyboardShortcut("s", modifiers: [.command, .shift])
             Button("Clean Up") { AppState.shared.nav.go(.cleanup) }.keyboardShortcut("k", modifiers: [.command, .shift])
             Button("Duplicates") { AppState.shared.nav.go(.duplicates) }.keyboardShortcut("d", modifiers: [.command, .shift])
             Button("Deep Clean") { AppState.shared.nav.go(.deepClean) }.keyboardShortcut("e", modifiers: [.command, .shift])

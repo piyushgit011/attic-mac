@@ -105,6 +105,7 @@ struct DetailRouter: View {
             case .category(let c): FileBrowserView(title: c.title, subtitle: nil, items: library.items(in: c), defaultSort: c == .apps ? .size : .arrival)
             case .largeFiles: FileBrowserView(title: "Large Files", subtitle: "Over 100 MB, biggest first", items: library.largeFiles, defaultSort: .size)
             case .screenshots: FileBrowserView(title: "Screenshots", subtitle: "Search finds the text inside them", items: library.screenshots, defaultSort: .arrival)
+            case .storage: StorageView()
             case .cleanup: CleanupOverview()
             case .cleanupCard(let kind):
                 if let card = library.cleanupCards.first(where: { $0.kind == kind }) { CleanupReviewView(card: card) }
@@ -145,6 +146,7 @@ struct SidebarView: View {
                 row(.screenshots, "Screenshots", "camera.viewfinder")
             }
             Section("Free Up Space") {
+                row(.storage, "Storage", "chart.bar.xaxis", badge: library.disk.used)
                 row(.cleanup, "Clean Up", "sparkles", badge: library.cleanupTotal)
                 row(.duplicates, "Duplicates", "square.on.square")
                 row(.deepClean, "Deep Clean", "hammer")

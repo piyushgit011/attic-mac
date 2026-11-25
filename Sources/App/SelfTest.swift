@@ -10,6 +10,15 @@ enum SelfTest {
             var failures = await run()
             if CommandLine.arguments.contains("--offload") { failures += await offloadTest() }
             if CommandLine.arguments.contains("--icloud") { failures += await iCloudTest() }
+            if CommandLine.arguments.contains("--storage") {
+                print("— Storage breakdown (this Mac)")
+                let disk = DiskStats.current()
+                let buckets = await Task.detached { StorageBreakdownModel.compute(filesBytes: 0, diskUsed: disk.used, progress: { _ in }) }.value
+                for b in buckets { print(String(format: "  %8.1f GB  %@", Double(b.bytes) / 1e9, b.title)) }
+                print("    disk used \(Fmt.bytes(disk.used)) · files bucket skipped in this test")
+                let clones = await Task.detached { DeepCleanScanner.codeSignClones(progress: { _ in }) }.value
+                for c in clones { print("  leftover copies: \(c.title) → \(Fmt.bytes(c.bytes)) real (recommended: \(c.recommended))") }
+            }
             if let i = CommandLine.arguments.firstIndex(of: "--icloudtest"), i + 2 < CommandLine.arguments.count {
                 // arg1: a downloaded iCloud file to evict; arg2: a local file to move into iCloud Drive
                 let evictURL = URL(fileURLWithPath: CommandLine.arguments[i + 1])

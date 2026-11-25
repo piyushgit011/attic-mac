@@ -61,6 +61,10 @@ Type "pdfs from last week over 5 mb" or "screenshots with wifi password". Attic 
   </tr>
 </table>
 
+### 📊 Where did my disk go?
+
+The **Storage** screen measures everything on the disk, including what macOS lumps into "System Data": your files, projects, app data, caches and temporary files, developer tools, simulator runtimes, Trash, swap and macOS itself. It shows the biggest folders inside each bucket, with buttons straight to Deep Clean or Memory & Swap. It also catches leftover app copies, like the hidden copies Chrome makes of itself at every launch.
+
 ### 🧠 Memory & Swap
 
 When memory runs short, macOS writes it to swap files on your disk, and those can quietly take 10 GB or more. Attic shows how much swap is in use, how many swap files are on disk, and which apps are holding the most memory, with **Quit** and **Force Quit** buttons right there.

@@ -119,6 +119,9 @@ enum DeepCleanScanner {
         out += bigChildren(of: home.appendingPathComponent("Library/Caches"), group: .appCaches, minBytes: 100_000_000,
                            skip: covered, recommended: true, progress: progress, isCancelled: isCancelled)
 
+        // 3b. Copies some apps (Chrome, Teams) make of themselves at launch and never clean up
+        out += codeSignClones(progress: progress)
+
         // 4. Large app data, review only
         for dir in ["Library/Application Support", "Library/Group Containers", "Library/Containers"] {
             out += bigChildren(of: home.appendingPathComponent(dir), group: .appData, minBytes: 1_000_000_000,
@@ -197,6 +200,39 @@ enum DeepCleanScanner {
             return name.split(separator: ".").last.map { String($0).capitalized } ?? name
         }
         return name
+    }
+
+    /// `/var/folders/…/X/<bundle id>.code_sign_clone` holds a full copy of the app for every launch that wasn't cleaned up.
+    /// Copies of the same version share disk blocks (APFS clones), so the space is estimated as one copy per version.
+    static func codeSignClones(progress: (String) -> Void) -> [JunkItem] {
+        let fm = FileManager.default
+        let x = URL(fileURLWithPath: NSTemporaryDirectory()).deletingLastPathComponent().appendingPathComponent("X")
+        guard let dirs = try? fm.contentsOfDirectory(at: x, includingPropertiesForKeys: nil, options: []) else { return [] }
+        var out: [JunkItem] = []
+        for dir in dirs where dir.lastPathComponent.hasSuffix(".code_sign_clone") {
+            guard let clones = try? fm.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.contentModificationDateKey], options: []),
+                  !clones.isEmpty else { continue }
+            progress(Fmt.path(dir))
+            let bundleID = String(dir.lastPathComponent.dropLast(".code_sign_clone".count))
+            let appURL = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundleID)
+            let appName = appURL.map { $0.deletingPathExtension().lastPathComponent } ?? bundleID
+            let running = !NSRunningApplication.runningApplications(withBundleIdentifier: bundleID).isEmpty
+            var versionSets = Set<String>()
+            var bytes: Int64 = 0
+            var newest = Date.distantPast
+            for c in clones {
+                if let d = (try? c.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate { newest = max(newest, d) }
+                let versions = (try? fm.subpathsOfDirectory(atPath: c.path))?
+                    .filter { $0.contains(".framework/Versions/") && $0.split(separator: "/").count == 6 && !$0.hasSuffix("Current") }
+                    .map { String($0.split(separator: "/").last!) }.sorted().joined(separator: ",") ?? ""
+                if versionSets.insert(versions).inserted { bytes += Scanner.directorySize(c).allocated }
+            }
+            guard bytes > 50_000_000 else { continue }
+            out.append(JunkItem(url: dir, title: "\(appName)’s leftover copies (\(clones.count))",
+                                detail: running ? "Quit \(appName) first · \(Fmt.path(dir))" : "Safe while \(appName) is closed · \(Fmt.path(dir))",
+                                group: .appCaches, bytes: bytes, lastUsed: newest, recommended: !running))
+        }
+        return out
     }
 
     // MARK: Trash
