@@ -14,6 +14,8 @@ final class LibraryStore {
     var cleanupCards: [CleanupCard] = []
     var trashedBytes: Int64 = Int64(UserDefaults.standard.double(forKey: Prefs.trashedBytes))
     var toast: String?
+    /// iCloud-only files macOS wouldn't move to the Trash; the UI asks before deleting them from iCloud.
+    var pendingCloudDelete: [FileItem] = []
 
     private var scanTask: Task<Void, Never>?
     private var cancelFlag = CancelFlag()
@@ -130,15 +132,30 @@ final class LibraryStore {
             }
         }
         // Root-owned items (some apps) need Finder's authorization prompt.
+        var needsFinder: [FileItem] = []
         for it in needsWorkspace {
             do {
                 _ = try await NSWorkspace.shared.recycle([it.url])
                 moved.insert(it.url)
                 bytes += it.spaceOnDisk
             } catch {
-                failed.append(it.name)
+                needsFinder.append(it)
             }
         }
+        // iCloud Drive items (Desktop & Documents in iCloud) live in a File Provider domain that only
+        // Finder may trash from a non-sandboxed app, so hand those to Finder.
+        // iCloud-only (dataless) files: macOS won't let a non-Finder app move them to the Trash without
+        // downloading them first. Ask before deleting them from iCloud instead (iCloud.com keeps them 30 days).
+        let cloudOnly = needsFinder.filter(\.isCloudOnly)
+        if !cloudOnly.isEmpty { pendingCloudDelete = cloudOnly }
+        let others = needsFinder.filter { !$0.isCloudOnly }
+        if !others.isEmpty {
+            let done = FinderTrash.trash(others.map(\.url))
+            for it in others {
+                if done.contains(it.url) { moved.insert(it.url); bytes += it.spaceOnDisk } else { failed.append(it.name) }
+            }
+        }
+        if !cloudOnly.isEmpty && moved.isEmpty && failed.isEmpty { return (0, 0, []) }
         remove(urls: moved)
         trashedBytes += bytes
         UserDefaults.standard.set(Double(trashedBytes), forKey: Prefs.trashedBytes)
@@ -148,15 +165,38 @@ final class LibraryStore {
         return (moved.count, bytes, failed)
     }
 
+    /// Deletes iCloud-only files through iCloud (coordinated), without downloading them.
+    func deleteFromICloud(_ targets: [FileItem]) {
+        var gone = Set<URL>()
+        var failed: [String] = []
+        for it in targets {
+            var coordErr: NSError?
+            var inner: Error?
+            NSFileCoordinator().coordinate(writingItemAt: it.url, options: .forDeleting, error: &coordErr) { u in
+                do { try FileManager.default.removeItem(at: u) } catch { inner = error }
+            }
+            if coordErr == nil && inner == nil { gone.insert(it.url) } else { failed.append(it.name) }
+        }
+        pendingCloudDelete = []
+        remove(urls: gone)
+        show(toast: failed.isEmpty
+             ? "Deleted \(Fmt.plural(gone.count, "file")) from iCloud. They’re in iCloud.com ▸ Recently Deleted for 30 days."
+             : "Deleted \(gone.count). Couldn’t delete: \(failed.prefix(3).joined(separator: ", "))")
+    }
+
     func trashURLs(_ urls: [URL], sizes: Int64) async -> Int {
         var moved = 0
+        var leftovers: [URL] = []
         for url in urls {
             if (try? FileManager.default.trashItem(at: url, resultingItemURL: nil)) != nil {
                 moved += 1
             } else if (try? await NSWorkspace.shared.recycle([url])) != nil {
                 moved += 1
+            } else {
+                leftovers.append(url)
             }
         }
+        if !leftovers.isEmpty { moved += FinderTrash.trash(leftovers).count }
         trashedBytes += sizes
         UserDefaults.standard.set(Double(trashedBytes), forKey: Prefs.trashedBytes)
         refreshDisk()
@@ -170,6 +210,22 @@ final class LibraryStore {
             try? await Task.sleep(nanoseconds: 4_000_000_000)
             if self.toast == current { self.toast = nil }
         }
+    }
+}
+
+/// Asks Finder to move items to the Trash. Finder can trash iCloud Drive (File Provider) items that
+/// FileManager refuses with "no permission" (error 513). First use shows macOS's Automation prompt.
+@MainActor
+enum FinderTrash {
+    static func trash(_ urls: [URL]) -> Set<URL> {
+        guard !urls.isEmpty else { return [] }
+        let list = urls.map { "POSIX file \"" + $0.path.replacingOccurrences(of: "\\", with: "\\\\").replacingOccurrences(of: "\"", with: "\\\"") + "\"" }
+            .joined(separator: ", ")
+        let source = "tell application \"Finder\" to delete {\(list)}"
+        var error: NSDictionary?
+        NSAppleScript(source: source)?.executeAndReturnError(&error)
+        if let error { NSLog("Attic: Finder trash failed: \(error)") }
+        return Set(urls.filter { !FileManager.default.fileExists(atPath: $0.path) })
     }
 }
 

@@ -121,7 +121,9 @@ struct FileItem: Identifiable, Hashable {
     var lastUsed: Date { max(accessed ?? modified, modified) }
     var isInstaller: Bool { TypeInfo.installerExts.contains(ext) }
     var isInDownloads: Bool { path.hasPrefix(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads").path + "/") }
-    var spaceOnDisk: Int64 { allocatedSize > 0 ? allocatedSize : size }
+    /// Bytes this file actually occupies on this Mac. iCloud-only (dataless) files use none.
+    var spaceOnDisk: Int64 { isCloudOnly ? 0 : (allocatedSize > 0 ? allocatedSize : size) }
+    var sizeLabel: String { isCloudOnly ? "\(Fmt.bytes(size)) in iCloud" : Fmt.bytes(spaceOnDisk) }
 
     static func == (a: FileItem, b: FileItem) -> Bool { a.url == b.url }
     func hash(into h: inout Hasher) { h.combine(url) }

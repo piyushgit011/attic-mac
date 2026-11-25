@@ -39,7 +39,22 @@ struct ContentView: View {
             OffloadSheet(items: req.items)
         }
         .quickLookPreview($nav.quickLookURL, in: nav.quickLookList)
+        .confirmationDialog(cloudDeleteTitle, isPresented: Binding(get: { !library.pendingCloudDelete.isEmpty },
+                                                                  set: { if !$0 { library.pendingCloudDelete = [] } })) {
+            Button("Delete from iCloud", role: .destructive) { library.deleteFromICloud(library.pendingCloudDelete) }
+            Button("Cancel", role: .cancel) { library.pendingCloudDelete = [] }
+        } message: {
+            Text("\(library.pendingCloudDelete.prefix(3).map(\.name).joined(separator: ", "))\(library.pendingCloudDelete.count > 3 ? " and \(library.pendingCloudDelete.count - 3) more" : "") \(library.pendingCloudDelete.count == 1 ? "is" : "are") only in iCloud and use no space on this Mac. macOS won’t move iCloud-only files to the Trash without downloading them first, so Attic can delete them from iCloud instead. You can recover them from iCloud.com ▸ Drive ▸ Recently Deleted for 30 days.")
+        }
         .onAppear { library.startIfNeeded() }
+    }
+}
+
+extension ContentView {
+    var cloudDeleteTitle: String {
+        let n = library.pendingCloudDelete.count
+        let total = library.pendingCloudDelete.reduce(Int64(0)) { $0 + $1.size }
+        return "Delete \(Fmt.plural(n, "iCloud file")) (\(Fmt.bytes(total))) from iCloud?"
     }
 }
 

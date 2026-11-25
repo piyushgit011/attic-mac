@@ -1,4 +1,5 @@
 import Foundation
+import AppKit
 import CryptoKit
 
 /// `Attic.app/Contents/MacOS/Attic --selftest [--r2]` runs the non-UI engine against real data and prints results.
@@ -8,6 +9,39 @@ enum SelfTest {
         Task { @MainActor in
             var failures = await run()
             if CommandLine.arguments.contains("--offload") { failures += await offloadTest() }
+            if let i = CommandLine.arguments.firstIndex(of: "--trashtest"), i + 1 < CommandLine.arguments.count {
+                let url = URL(fileURLWithPath: CommandLine.arguments[i + 1])
+                do {
+                    var out: NSURL?
+                    try FileManager.default.trashItem(at: url, resultingItemURL: &out)
+                    print("trashItem OK -> \(out?.path ?? "?")")
+                } catch {
+                    let e = error as NSError
+                    print("trashItem FAILED \(e.domain) \(e.code) \(e.localizedDescription) \((e.userInfo[NSUnderlyingErrorKey] as? NSError).map { "\($0.domain) \($0.code)" } ?? "")")
+                    do {
+                        _ = try await NSWorkspace.shared.recycle([url])
+                        print("recycle OK")
+                    } catch {
+                        let e = error as NSError
+                        print("recycle FAILED \(e.domain) \(e.code) \(e.localizedDescription)")
+                        var coordErr: NSError?
+                        var inner: Error?
+                        NSFileCoordinator().coordinate(writingItemAt: url, options: .forMoving, error: &coordErr) { u in
+                            do { try FileManager.default.trashItem(at: u, resultingItemURL: nil) } catch { inner = error }
+                        }
+                        if coordErr == nil && inner == nil { print("coordinated trash OK") }
+                        else {
+                            print("coordinated trash FAILED \((inner as NSError?)?.code ?? coordErr?.code ?? 0)")
+                            var delErr: NSError?
+                            var delInner: Error?
+                            NSFileCoordinator().coordinate(writingItemAt: url, options: .forDeleting, error: &delErr) { u in
+                                do { try FileManager.default.removeItem(at: u) } catch { delInner = error }
+                            }
+                            print(delErr == nil && delInner == nil ? "coordinated delete OK" : "coordinated delete FAILED \((delInner as NSError?)?.code ?? delErr?.code ?? 0) \((delInner as NSError?)?.localizedDescription ?? "")")
+                        }
+                    }
+                }
+            }
             print(failures == 0 ? "SELFTEST PASS" : "SELFTEST FAIL (\(failures))")
             exit(failures == 0 ? 0 : 1)
         }

@@ -180,7 +180,7 @@ struct FileCard: View {
             Text(item.name).font(.callout).lineLimit(1).truncationMode(.middle)
             Text(item.category == .apps
                  ? "\(Fmt.bytes(item.spaceOnDisk)) · \(item.accessed.map { "opened \(Fmt.ago($0))" } ?? "never opened")"
-                 : "\(Fmt.bytes(item.spaceOnDisk)) · \(Fmt.ago(item.arrivalDate))")
+                 : "\(item.sizeLabel) · \(Fmt.ago(item.arrivalDate))")
                 .font(.caption).foregroundStyle(.secondary).lineLimit(1)
         }
         .padding(8)
@@ -233,7 +233,7 @@ struct FileTable: View {
                 .onDrag { NSItemProvider(contentsOf: item.url) ?? NSItemProvider() }
             }
             .width(min: 220, ideal: 340)
-            TableColumn("Size", value: \.spaceOnDisk) { Text(Fmt.bytes($0.spaceOnDisk)).monospacedDigit() }.width(80)
+            TableColumn("Size", value: \.spaceOnDisk) { Text($0.sizeLabel).monospacedDigit().foregroundStyle($0.isCloudOnly ? .secondary : .primary) }.width(min: 80, ideal: 110)
             TableColumn("Kind", value: \.kind) { Text($0.kind).lineLimit(1) }.width(min: 90, ideal: 130)
             TableColumn("Added", value: \.arrivalDate) { Text(Fmt.shortDate($0.arrivalDate)) }.width(100)
             TableColumn("From", value: \.sourceSort) { Text($0.source ?? "").foregroundStyle(.secondary) }.width(min: 70, ideal: 100)

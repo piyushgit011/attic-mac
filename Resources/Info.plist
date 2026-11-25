@@ -34,6 +34,8 @@
 	<string>Attic groups your downloads by where they came from and finds ones you no longer need.</string>
 	<key>NSRemovableVolumesUsageDescription</key>
 	<string>Attic can show files on external drives you add as scan locations.</string>
+	<key>NSFileProviderDomainUsageDescription</key>
+	<string>Attic needs access to iCloud Drive to move iCloud files (like your Desktop and Documents) to the Trash.</string>
 	<key>NSAppleEventsUsageDescription</key>
 	<string>Attic asks Finder to empty the Trash when you click Empty Trash.</string>
 	<key>CFBundleDocumentTypes</key>
