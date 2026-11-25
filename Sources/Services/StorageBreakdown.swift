@@ -116,12 +116,16 @@ final class StorageBreakdownModel {
         }
     }
 
-    /// The system's privacy database is readable only with Full Disk Access, so this checks without prompting.
+    /// Folders macOS only lets apps with Full Disk Access list. Reading them never shows a prompt; it just fails.
+    /// (The TCC database itself stays locked even with Full Disk Access on recent macOS, so it can't be the test.)
     nonisolated static func checkFullDiskAccess() -> Bool {
-        let path = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Application Support/com.apple.TCC/TCC.db").path
-        guard let f = fopen(path, "r") else { return false }
-        fclose(f)
-        return true
+        let home = FileManager.default.homeDirectoryForCurrentUser
+        for rel in ["Library/Safari", "Library/Mail", "Library/Messages"] {
+            let path = home.appendingPathComponent(rel).path
+            guard FileManager.default.fileExists(atPath: path) else { continue }
+            if (try? FileManager.default.contentsOfDirectory(atPath: path)) != nil { return true }
+        }
+        return false
     }
 
     static func openFullDiskAccessSettings() {

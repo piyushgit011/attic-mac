@@ -1,5 +1,8 @@
 # Changelog
 
+## 1.2.1
+- Full Disk Access is now detected correctly on recent macOS, so app data like WhatsApp media and Mail is measured once you turn it on.
+
 ## 1.2.0
 - **Storage breakdown.** A new Storage screen splits the disk into buckets you can act on: your files, Projects (~/Developer), app data, other home folders, caches & temporary files, developer tools, simulators, Trash, swap and macOS, with the biggest folders in each. Home's storage bar now shows these buckets instead of one grey "System & other".
 - **Leftover app copies.** Deep Clean finds the copies some apps (like Chrome) make of themselves at every launch and never remove, and estimates their real size correctly (copies share disk blocks).

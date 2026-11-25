@@ -10,6 +10,16 @@ enum SelfTest {
             var failures = await run()
             if CommandLine.arguments.contains("--offload") { failures += await offloadTest() }
             if CommandLine.arguments.contains("--icloud") { failures += await iCloudTest() }
+            if CommandLine.arguments.contains("--fdacheck") {
+                let home = FileManager.default.homeDirectoryForCurrentUser
+                print("Full Disk Access: \(StorageBreakdownModel.checkFullDiskAccess())")
+                for rel in ["Library/Safari", "Library/Mail", "Library/Messages", "Library/Group Containers/group.net.whatsapp.WhatsApp.shared", "Library/Containers/com.apple.mail"] {
+                    do {
+                        let n = try FileManager.default.contentsOfDirectory(atPath: home.appendingPathComponent(rel).path).count
+                        print("read \(rel): ok (\(n) items)")
+                    } catch { print("read \(rel): \((error as NSError).code) \(error.localizedDescription)") }
+                }
+            }
             if CommandLine.arguments.contains("--storage") {
                 print("— Storage breakdown (this Mac)")
                 let disk = DiskStats.current()
