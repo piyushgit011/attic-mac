@@ -41,3 +41,7 @@ build/dd/Build/Products/Release/Attic.app/Contents/MacOS/Attic --selftest --r2 -
 ```bash
 swift branding/render-logo.swift .
 ```
+
+## License
+
+MIT. See [LICENSE](LICENSE).
