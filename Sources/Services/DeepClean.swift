@@ -1,0 +1,216 @@
+import Foundation
+import SwiftUI
+
+/// Rebuildable or app-owned space outside the normal file library: dependency folders, build output, caches.
+struct JunkItem: Identifiable, Hashable {
+    enum Group: String, CaseIterable {
+        case projects = "Project dependencies & builds"
+        case devCaches = "Developer caches"
+        case appCaches = "App caches"
+        case appData = "Large app data (review in the app)"
+
+        var symbol: String {
+            switch self {
+            case .projects: return "hammer"
+            case .devCaches: return "terminal"
+            case .appCaches: return "internaldrive"
+            case .appData: return "folder.badge.person.crop"
+            }
+        }
+        var tint: Color {
+            switch self {
+            case .projects: return .indigo
+            case .devCaches: return .green
+            case .appCaches: return .orange
+            case .appData: return .gray
+            }
+        }
+        var note: String {
+            switch self {
+            case .projects: return "Rebuilt by npm install, pip install or a fresh build when you next work on the project."
+            case .devCaches: return "Package-manager and build caches. Tools download them again when needed."
+            case .appCaches: return "Apps recreate caches on their own. Quit the app first for best results."
+            case .appData: return "Owned by the app. Clear it from inside the app (for example WhatsApp ▸ Settings ▸ Storage)."
+            }
+        }
+        var canTrash: Bool { self != .appData }
+    }
+
+    let url: URL
+    let title: String
+    let detail: String
+    let group: Group
+    let bytes: Int64
+    let lastUsed: Date?
+    let recommended: Bool
+    var id: URL { url }
+}
+
+enum DeepCleanScanner {
+    static func scan(projectRoots: [URL], progress: @escaping (String) -> Void, isCancelled: @escaping () -> Bool) -> [JunkItem] {
+        var out: [JunkItem] = []
+        let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser
+        let monthAgo = Date().addingTimeInterval(-30 * 86_400)
+
+        // 1. Project folders: node_modules, Python envs, Xcode/SwiftPM build output, Next.js caches.
+        for root in projectRoots {
+            if isCancelled() { break }
+            guard let en = fm.enumerator(at: root, includingPropertiesForKeys: [.isDirectoryKey, .isPackageKey, .contentModificationDateKey],
+                                         options: [.skipsPackageDescendants], errorHandler: { _, _ in true }) else { continue }
+            for case let url as URL in en {
+                if isCancelled() { break }
+                let name = url.lastPathComponent
+                guard (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else { continue }
+                if name == ".git" || name == "Library" || name == ".Trash" { en.skipDescendants(); continue }
+                guard let kind = projectJunkKind(url) else {
+                    if name.hasPrefix(".") && name != ".build" && name != ".next" && name != ".venv" { en.skipDescendants() }
+                    continue
+                }
+                en.skipDescendants()
+                progress(Fmt.path(url))
+                let size = Scanner.directorySize(url).allocated
+                guard size > 20_000_000 else { continue }
+                let last = lastActivity(of: url)
+                let project = url.deletingLastPathComponent()
+                out.append(JunkItem(url: url, title: "\(project.lastPathComponent) ▸ \(name)",
+                                    detail: "\(kind) · \(Fmt.path(project))", group: .projects, bytes: size,
+                                    lastUsed: last, recommended: (last ?? .distantPast) < monthAgo))
+            }
+        }
+
+        // 2. Well-known developer caches.
+        let devCaches: [(String, String, Bool)] = [
+            ("Library/Developer/Xcode/DerivedData", "Xcode build cache", true),
+            ("Library/Developer/Xcode/iOS DeviceSupport", "Xcode device symbols", true),
+            ("Library/Developer/CoreSimulator/Caches", "Simulator caches", true),
+            (".npm/_cacache", "npm cache", true),
+            ("Library/Caches/Yarn", "Yarn cache", true),
+            ("Library/pnpm/store", "pnpm store", true),
+            (".bun/install/cache", "Bun cache", true),
+            ("Library/Caches/Homebrew", "Homebrew downloads", true),
+            ("Library/Caches/pip", "pip cache", true),
+            (".cache/uv", "uv cache", true),
+            (".cache/pip", "pip cache", true),
+            (".gradle/caches", "Gradle cache", true),
+            ("Library/Caches/ms-playwright", "Playwright browsers", false),
+            (".cache/puppeteer", "Puppeteer browsers", false),
+            (".cache/huggingface", "Hugging Face models (re-download when used)", false),
+            ("Library/Caches/CocoaPods", "CocoaPods cache", true),
+            (".cocoapods/repos", "CocoaPods specs", false),
+        ]
+        var covered = Set<String>()
+        for (rel, title, rec) in devCaches {
+            if isCancelled() { break }
+            let url = home.appendingPathComponent(rel)
+            guard fm.fileExists(atPath: url.path) else { continue }
+            progress(Fmt.path(url))
+            let size = Scanner.directorySize(url).allocated
+            covered.insert(url.path)
+            guard size > 20_000_000 else { continue }
+            out.append(JunkItem(url: url, title: title, detail: Fmt.path(url), group: .devCaches, bytes: size, lastUsed: nil, recommended: rec))
+        }
+
+        // Anything else big in ~/.cache
+        out += bigChildren(of: home.appendingPathComponent(".cache"), group: .devCaches, minBytes: 300_000_000,
+                           skip: covered, recommended: false, progress: progress, isCancelled: isCancelled)
+
+        // 3. App caches in ~/Library/Caches
+        out += bigChildren(of: home.appendingPathComponent("Library/Caches"), group: .appCaches, minBytes: 100_000_000,
+                           skip: covered, recommended: true, progress: progress, isCancelled: isCancelled)
+
+        // 4. Large app data, review only
+        for dir in ["Library/Application Support", "Library/Group Containers", "Library/Containers"] {
+            out += bigChildren(of: home.appendingPathComponent(dir), group: .appData, minBytes: 1_000_000_000,
+                               skip: covered, recommended: false, progress: progress, isCancelled: isCancelled)
+        }
+        return out.sorted { $0.bytes > $1.bytes }
+    }
+
+    static func projectJunkKind(_ url: URL) -> String? {
+        let fm = FileManager.default
+        switch url.lastPathComponent {
+        case "node_modules": return "npm dependencies"
+        case ".next": return "Next.js build cache"
+        case ".venv", "venv":
+            return fm.fileExists(atPath: url.appendingPathComponent("pyvenv.cfg").path) ? "Python environment" : nil
+        case ".build":
+            return fm.fileExists(atPath: url.deletingLastPathComponent().appendingPathComponent("Package.swift").path) ? "Swift build output" : nil
+        case "DerivedData": return "Xcode build output"
+        case "build":
+            // Xcode -derivedDataPath folders (build/<x>/Build/Products) or build/Build/Products
+            if fm.fileExists(atPath: url.appendingPathComponent("Build/Products").path) { return "Xcode build output" }
+            if let kids = try? fm.contentsOfDirectory(atPath: url.path),
+               kids.contains(where: { fm.fileExists(atPath: url.appendingPathComponent($0).appendingPathComponent("Build/Products").path) }) {
+                return "Xcode build output"
+            }
+            return nil
+        case "target":
+            return fm.fileExists(atPath: url.appendingPathComponent("CACHEDIR.TAG").path) ? "Rust build output" : nil
+        default: return nil
+        }
+    }
+
+    static func lastActivity(of url: URL) -> Date? {
+        let project = url.deletingLastPathComponent()
+        var dates: [Date] = []
+        for name in ["package.json", "package-lock.json", "yarn.lock", "pnpm-lock.yaml", "Package.swift", "requirements.txt", "pyproject.toml", ".git/index"] {
+            if let d = (try? project.appendingPathComponent(name).resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate {
+                dates.append(d)
+            }
+        }
+        if let d = (try? url.resourceValues(forKeys: [.contentModificationDateKey]))?.contentModificationDate { dates.append(d) }
+        return dates.max()
+    }
+
+    static func bigChildren(of dir: URL, group: JunkItem.Group, minBytes: Int64, skip: Set<String>, recommended: Bool,
+                            progress: (String) -> Void, isCancelled: () -> Bool) -> [JunkItem] {
+        guard let kids = try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: [.isDirectoryKey], options: []) else { return [] }
+        var out: [JunkItem] = []
+        for url in kids {
+            if isCancelled() { break }
+            if skip.contains(url.path) || skip.contains(where: { $0.hasPrefix(url.path + "/") }) && group == .devCaches { continue }
+            guard (try? url.resourceValues(forKeys: [.isDirectoryKey]))?.isDirectory == true else { continue }
+            progress(Fmt.path(url))
+            let size = Scanner.directorySize(url).allocated
+            guard size >= minBytes else { continue }
+            out.append(JunkItem(url: url, title: friendlyName(url.lastPathComponent), detail: Fmt.path(url), group: group,
+                                bytes: size, lastUsed: nil, recommended: recommended))
+        }
+        return out
+    }
+
+    static func friendlyName(_ name: String) -> String {
+        let known: [String: String] = [
+            "group.net.whatsapp.WhatsApp.shared": "WhatsApp media",
+            "Claude": "Claude app data",
+            "Arc": "Arc browser profiles",
+            "Code": "VS Code data",
+            "Google": "Google Chrome profiles",
+            "com.spotify.client": "Spotify cache",
+            "com.apple.Safari": "Safari",
+            "group.com.apple.UserNotifications": "Notification attachments",
+        ]
+        if let k = known[name] { return k }
+        if name.contains(".") && !name.contains(" ") {
+            // reverse-DNS bundle id → last component
+            return name.split(separator: ".").last.map { String($0).capitalized } ?? name
+        }
+        return name
+    }
+
+    // MARK: Trash
+
+    static func trashSize() -> Int64? {
+        let url = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent(".Trash")
+        guard (try? FileManager.default.contentsOfDirectory(atPath: url.path)) != nil else { return nil }
+        return Scanner.directorySize(url).allocated
+    }
+
+    static func emptyTrash() -> String? {
+        var error: NSDictionary?
+        NSAppleScript(source: "tell application \"Finder\" to empty trash")?.executeAndReturnError(&error)
+        if let error { return (error[NSAppleScript.errorMessage] as? String) ?? "Finder couldn’t empty the Trash" }
+        return nil
+    }
+}
