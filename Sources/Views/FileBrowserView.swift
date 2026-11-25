@@ -70,8 +70,8 @@ struct FileBrowserView: View {
                 Text("\(selected.count) selected · \(Fmt.bytes(selected.reduce(0) { $0 + $1.spaceOnDisk }))")
                     .font(.callout).foregroundStyle(.secondary)
                 if selected.contains(where: { $0.category != .apps && !$0.isPackage && !$0.url.isAtticStub }) {
-                    Button { nav.offloadRequest = selected } label: { Label("Offload to R2", systemImage: "icloud.and.arrow.up") }
-                        .help("Upload to Cloudflare R2 and free the space on this Mac")
+                    Button { nav.offloadRequest = selected } label: { Label("Offload…", systemImage: "icloud.and.arrow.up") }
+                        .help("Move to Cloudflare R2 or iCloud Drive and free the space on this Mac")
                 }
                 Button(role: .destructive) { Task { await library.trash(selected) } } label: { Label("Trash", systemImage: "trash") }
             }
@@ -275,7 +275,10 @@ struct FileContextMenu: View {
             Button("Show Details") { nav.selection = Set(targets.map(\.url)); nav.focused = first.url; nav.showInspector = true }
             Divider()
             if targets.contains(where: { $0.category != .apps && !$0.isPackage && !$0.url.isAtticStub }) {
-                Button("Offload to R2…") { nav.offloadRequest = targets }
+                Button("Offload to R2 or iCloud…") { nav.offloadRequest = targets }
+            }
+            if targets.contains(where: \.isICloudDownloaded) {
+                Button("Remove Download (keep in iCloud)") { AppState.shared.cloud.removeDownloads(targets.filter(\.isICloudDownloaded)) }
             }
             Button("Move to Trash", role: .destructive) { Task { await library.trash(targets) } }
         }

@@ -304,28 +304,43 @@ struct OffloadSheet: View {
     @Environment(\.dismiss) private var dismiss
     @AppStorage(Prefs.afterUpload) private var after = AfterUpload.trash.rawValue
     @AppStorage(Prefs.leaveStubs) private var leaveStubs = true
+    @AppStorage("offloadDestination") private var destination = "r2"
     @State private var started = false
 
+    private var toICloud: Bool { destination == "icloud" }
+
     var body: some View {
-        let eligible = items.filter { !$0.isPackage && !$0.isCloudOnly && !$0.url.isAtticStub && $0.category != .apps }
+        let eligible = items.filter { !$0.isCloudOnly && !$0.url.isAtticStub && $0.category != .apps && (toICloud || !$0.isPackage) }
         let bytes = eligible.reduce(Int64(0)) { $0 + $1.size }
+        let alreadyInICloud = eligible.filter(\.isICloudDownloaded).count
         VStack(alignment: .leading, spacing: 16) {
             HStack(spacing: 12) {
-                Image(systemName: "icloud.and.arrow.up.fill").font(.system(size: 34)).foregroundStyle(.orange)
+                Image(systemName: toICloud ? "icloud.and.arrow.up.fill" : "cloud.fill").font(.system(size: 34))
+                    .foregroundStyle(toICloud ? Color.cyan : Color.orange)
                 VStack(alignment: .leading) {
-                    Text("Offload to Cloudflare R2").font(.title2.weight(.semibold))
+                    Text("Free up space").font(.title2.weight(.semibold))
                     Text("\(Fmt.plural(eligible.count, "file")) · \(Fmt.bytes(bytes))").foregroundStyle(.secondary)
                 }
             }
-            if !cloud.isConnected {
+            if !started {
+                Picker("Move to", selection: $destination) {
+                    Label("Cloudflare R2", systemImage: "cloud").tag("r2")
+                    Label("iCloud Drive", systemImage: "icloud").tag("icloud")
+                }
+                .pickerStyle(.segmented)
+            }
+            if started, let p = cloud.offloadProgress {
+                progressView(p)
+            } else if !toICloud && !cloud.isConnected {
                 Text("Connect your R2 bucket first. It takes one click with Versely’s Cloudflare account.").foregroundStyle(.secondary)
                 HStack {
                     Spacer()
                     Button("Cancel") { dismiss() }
                     Button("Set up R2") { dismiss(); nav.go(.cloud) }.buttonStyle(.borderedProminent)
                 }
-            } else if let p = cloud.offloadProgress, started {
-                progressView(p)
+            } else if toICloud && !CloudStore.iCloudAvailable {
+                Text("iCloud Drive isn’t turned on for this Mac. Turn it on in System Settings ▸ Apple Account ▸ iCloud.").foregroundStyle(.secondary)
+                HStack { Spacer(); Button("Cancel") { dismiss() } }
             } else {
                 VStack(alignment: .leading, spacing: 4) {
                     ForEach(eligible.prefix(5)) { Text("• \($0.name) (\(Fmt.bytes($0.size)))").lineLimit(1).truncationMode(.middle) }
@@ -334,39 +349,67 @@ struct OffloadSheet: View {
                         Text("\(items.count - eligible.count) apps, packages or iCloud-only items will be skipped.").font(.caption).foregroundStyle(.secondary)
                     }
                 }
-                Text("Each file is uploaded to “\(cloud.creds?.bucket ?? "")”, checked byte-for-byte in R2, and only then removed from this Mac.")
-                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
-                Picker("After a verified upload", selection: $after) {
-                    ForEach(AfterUpload.allCases) { Text($0.title).tag($0.rawValue) }
+                if toICloud {
+                    Text(alreadyInICloud > 0
+                         ? "\(alreadyInICloud) of these are already in iCloud Drive: they stay where they are and stop taking space here. The rest move to iCloud Drive ▸ Attic with a link left in their folder, and the copy on this Mac goes as soon as iCloud has uploaded it."
+                         : "Files move to iCloud Drive ▸ Attic and a link stays in their folder, so they still open from there. The copy on this Mac goes as soon as iCloud has uploaded it. They count toward your iCloud storage.")
+                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                } else {
+                    Text("Each file is uploaded to “\(cloud.creds?.bucket ?? "")”, checked byte-for-byte in R2, and only then removed from this Mac.")
+                        .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    Picker("After a verified upload", selection: $after) {
+                        ForEach(AfterUpload.allCases) { Text($0.title).tag($0.rawValue) }
+                    }
+                    .pickerStyle(.radioGroup)
+                    Toggle("Leave a small .attic placeholder where each file was (double-click to bring it back)", isOn: $leaveStubs)
+                        .disabled(after == AfterUpload.keep.rawValue)
                 }
-                .pickerStyle(.radioGroup)
-                Toggle("Leave a small .attic placeholder where each file was (double-click to bring it back)", isOn: $leaveStubs)
-                    .disabled(after == AfterUpload.keep.rawValue)
                 HStack {
                     Spacer()
                     Button("Cancel") { dismiss() }.keyboardShortcut(.cancelAction)
-                    Button("Offload \(Fmt.bytes(bytes))") {
+                    Button(toICloud ? "Move \(Fmt.bytes(bytes)) to iCloud" : "Offload \(Fmt.bytes(bytes)) to R2") {
                         started = true
-                        Task { await cloud.offload(eligible, after: AfterUpload(rawValue: after) ?? .trash, leaveStubs: leaveStubs) }
+                        if toICloud {
+                            Task { await cloud.offloadToICloud(eligible) }
+                        } else {
+                            Task { await cloud.offload(eligible, after: AfterUpload(rawValue: after) ?? .trash, leaveStubs: leaveStubs) }
+                        }
                     }
                     .buttonStyle(.borderedProminent).keyboardShortcut(.defaultAction).disabled(eligible.isEmpty)
                 }
             }
         }
         .padding(24)
-        .frame(width: 520)
+        .frame(width: 540)
+        .onAppear {
+            if nav.autoStartOffload {
+                nav.autoStartOffload = false
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    started = true
+                    if toICloud { Task { await cloud.offloadToICloud(eligible) } }
+                    else { Task { await cloud.offload(eligible, after: .delete, leaveStubs: true) } }
+                }
+            }
+        }
     }
 
     @ViewBuilder
     private func progressView(_ p: CloudStore.OffloadProgress) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             ProgressView(value: Double(p.bytesDone), total: Double(max(1, p.bytesTotal)))
-            Text(p.finished ? "Done: \(p.done) of \(p.total) files" : "Uploading \(p.current) (\(p.done + 1) of \(p.total))")
+            Text(p.finished ? "Done: \(p.done) of \(p.total) files" : "\(toICloud ? "Moving" : "Uploading") \(p.current) (\(min(p.done + 1, p.total)) of \(p.total))")
                 .lineLimit(1).truncationMode(.middle)
-            Text("\(Fmt.bytes(p.bytesDone)) of \(Fmt.bytes(p.bytesTotal)) uploaded · \(Fmt.bytes(p.freed)) freed on this Mac")
-                .font(.callout).foregroundStyle(.secondary)
-            if after == AfterUpload.trash.rawValue && p.finished && p.freed > 0 {
-                Text("The local copies are in the Trash. Empty it to get the \(Fmt.bytes(p.freed)) back.").font(.callout).foregroundStyle(.orange)
+            if toICloud {
+                Text(cloud.iCloudPendingCount > 0
+                     ? "\(Fmt.bytes(p.freed)) freed now. The rest is freed as iCloud finishes uploading (\(Fmt.plural(cloud.iCloudPendingCount, "file")) waiting). Attic keeps checking while it’s open."
+                     : "\(Fmt.bytes(p.freed)) freed on this Mac. Everything is in iCloud Drive.")
+                    .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+            } else {
+                Text("\(Fmt.bytes(p.bytesDone)) of \(Fmt.bytes(p.bytesTotal)) uploaded · \(Fmt.bytes(p.freed)) freed on this Mac")
+                    .font(.callout).foregroundStyle(.secondary)
+                if after == AfterUpload.trash.rawValue && p.finished && p.freed > 0 {
+                    Text("The local copies are in the Trash. Empty it to get the \(Fmt.bytes(p.freed)) back.").font(.callout).foregroundStyle(.orange)
+                }
             }
             if !p.failures.isEmpty {
                 ScrollView {
@@ -399,7 +442,8 @@ struct OffloadedView: View {
             HStack {
                 VStack(alignment: .leading) {
                     Text("Offloaded").font(.title2.weight(.semibold))
-                    Text("\(Fmt.plural(cloud.records.count, "file")) · \(Fmt.bytes(cloud.offloadedBytes)) freed from this Mac").foregroundStyle(.secondary)
+                    Text("\(Fmt.plural(cloud.records.count, "file")) · \(Fmt.bytes(cloud.offloadedBytes)) moved off this Mac" + (cloud.iCloudStatus.map { " · \($0)" } ?? ""))
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
                 TextField("Filter", text: $filter).textFieldStyle(.roundedBorder).frame(width: 180)
@@ -420,6 +464,12 @@ struct OffloadedView: View {
                         }
                     }
                     TableColumn("Was in", value: \.folder) { Text($0.folder).foregroundStyle(.secondary).lineLimit(1).truncationMode(.head) }
+                    TableColumn("Now in", value: \.whereLabel) { r in
+                        HStack(spacing: 5) {
+                            Image(systemName: r.isICloud ? "icloud" : "cloud").foregroundStyle(r.isICloud ? Color.cyan : Color.orange)
+                            Text(r.pendingEvict == true ? "iCloud (uploading…)" : r.whereLabel).lineLimit(1)
+                        }
+                    }.width(min: 110, ideal: 170)
                     TableColumn("Size", value: \.size) { Text(Fmt.bytes($0.size)).monospacedDigit() }.width(90)
                     TableColumn("Offloaded", value: \.offloadedAt) { Text(Fmt.ago($0.offloadedAt)) }.width(110)
                 }

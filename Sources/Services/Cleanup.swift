@@ -6,7 +6,7 @@ import CryptoKit
 
 struct CleanupCard: Identifiable, Hashable {
     enum Kind: String, CaseIterable {
-        case forgottenDownloads, oldInstallers, oldScreenshots, bigOldVideos, largeFiles, unusedApps
+        case forgottenDownloads, oldInstallers, oldScreenshots, bigOldVideos, largeFiles, unusedApps, alreadyInICloud
     }
     let kind: Kind
     let items: [FileItem]
@@ -21,6 +21,7 @@ struct CleanupCard: Identifiable, Hashable {
         case .bigOldVideos: return "Big old videos"
         case .largeFiles: return "Large files"
         case .unusedApps: return "Unused apps"
+        case .alreadyInICloud: return "Already in iCloud"
         }
     }
 
@@ -32,6 +33,7 @@ struct CleanupCard: Identifiable, Hashable {
         case .bigOldVideos: return "Videos over 200 MB not touched in 6 months"
         case .largeFiles: return "Anything over 500 MB, good candidates for the cloud"
         case .unusedApps: return "Apps you haven’t opened in 90 days"
+        case .alreadyInICloud: return "Safe in iCloud Drive. Remove the copy on this Mac; it downloads again when you open it"
         }
     }
 
@@ -43,6 +45,7 @@ struct CleanupCard: Identifiable, Hashable {
         case .bigOldVideos: return "film"
         case .largeFiles: return "scalemass"
         case .unusedApps: return "app.dashed"
+        case .alreadyInICloud: return "icloud.and.arrow.down"
         }
     }
 
@@ -54,6 +57,7 @@ struct CleanupCard: Identifiable, Hashable {
         case .bigOldVideos: return .purple
         case .largeFiles: return .orange
         case .unusedApps: return .teal
+        case .alreadyInICloud: return .cyan
         }
     }
 
@@ -79,8 +83,9 @@ enum CleanupEngine {
                 && ($0.accessed ?? $0.added ?? $0.created) < now - 90 * day
         }
 
+        let inICloud = files.filter { $0.isICloudDownloaded && $0.isICloudUploaded && $0.spaceOnDisk > 5_000_000 && !$0.isPackage }
         for (kind, list) in [(CleanupCard.Kind.forgottenDownloads, forgotten), (.oldInstallers, installers), (.oldScreenshots, shots),
-                             (.bigOldVideos, videos), (.largeFiles, large), (.unusedApps, apps)] where !list.isEmpty {
+                             (.bigOldVideos, videos), (.largeFiles, large), (.unusedApps, apps), (.alreadyInICloud, inICloud)] where !list.isEmpty {
             cards.append(CleanupCard(kind: kind, items: list.sorted { $0.spaceOnDisk > $1.spaceOnDisk }))
         }
         return cards.sorted { $0.bytes > $1.bytes }

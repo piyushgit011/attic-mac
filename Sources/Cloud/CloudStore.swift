@@ -91,6 +91,12 @@ struct OffloadRecord: Codable, Identifiable, Hashable {
     var modified: Date
     var offloadedAt: Date
     var stubPath: String?
+    /// nil = Cloudflare R2, "icloud" = moved into iCloud Drive, "icloud-inplace" = already in iCloud, download removed.
+    var destination: String?
+    /// iCloud only: the local copy is removed once iCloud finishes uploading.
+    var pendingEvict: Bool?
+    var isICloud: Bool { destination?.hasPrefix("icloud") == true }
+    var whereLabel: String { isICloud ? "iCloud Drive" : "R2 · \(bucket)" }
 
     var name: String { (originalPath as NSString).lastPathComponent }
     var folder: String { Fmt.path((originalPath as NSString).deletingLastPathComponent) }
@@ -212,6 +218,7 @@ final class CloudStore {
         self.transfers = transfers
         self.library = library
         loadManifest()
+        DispatchQueue.main.async { [weak self] in self?.startICloudWatcher() }
         if let data = Keychain.load(), let c = try? JSONDecoder().decode(R2Credentials.self, from: data) {
             apply(c)
         }
@@ -508,6 +515,10 @@ final class CloudStore {
 
     @discardableResult
     func restore(_ record: OffloadRecord, open: Bool = false, removeFromCloud: Bool = false, reveal: Bool = true) async -> URL? {
+        if record.isICloud {
+            await restoreICloud(record, open: open)
+            return URL(fileURLWithPath: record.originalPath)
+        }
         guard let client else { error = R2Error.notConfigured.localizedDescription; return nil }
         let original = URL(fileURLWithPath: record.originalPath)
         let dest = AppPaths.uniqueURL(for: original)
@@ -549,6 +560,150 @@ final class CloudStore {
         record.stubPath = url.path
         await restore(record, open: open, reveal: reveal)
         library.remove(urls: [url])
+    }
+
+    // MARK: iCloud Drive
+
+    static var iCloudDriveRoot: URL {
+        FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs", isDirectory: true)
+    }
+    static var iCloudAvailable: Bool {
+        FileManager.default.ubiquityIdentityToken != nil || FileManager.default.fileExists(atPath: iCloudDriveRoot.path)
+    }
+    var iCloudPendingCount: Int { records.filter { $0.isICloud && $0.pendingEvict == true }.count }
+    var iCloudStatus: String?
+    private var evictTimer: Timer?
+
+    /// Removes the local copy of files iCloud already has. They stay in place and download again when opened.
+    @discardableResult
+    func removeDownloads(_ items: [FileItem]) -> (count: Int, bytes: Int64) {
+        var done = Set<URL>()
+        var bytes: Int64 = 0
+        var failed: [String] = []
+        for it in items where it.isICloudDownloaded {
+            do {
+                try FileManager.default.evictUbiquitousItem(at: it.url)
+                done.insert(it.url)
+                bytes += it.spaceOnDisk
+            } catch { failed.append(it.name) }
+        }
+        library.remove(urls: done)
+        library.show(toast: failed.isEmpty
+                     ? "Removed \(Fmt.bytes(bytes)) of downloads. The files stay in iCloud and download again when you open them."
+                     : "Removed \(done.count). Not uploaded yet or busy: \(failed.prefix(3).joined(separator: ", "))")
+        return (done.count, bytes)
+    }
+
+    /// Offload to iCloud Drive: files already in iCloud get their download removed; other files move into
+    /// iCloud Drive ▸ Attic with a link left behind, and the local copy goes once iCloud has uploaded it.
+    func offloadToICloud(_ items: [FileItem]) async {
+        let files = items.filter { !$0.isCloudOnly && !$0.url.isAtticStub && $0.category != .apps }
+        var progress = OffloadProgress(total: files.count, done: 0, bytesTotal: files.reduce(0) { $0 + $1.size }, bytesDone: 0, current: "")
+        offloadProgress = progress
+        var moved = Set<URL>()
+        let fm = FileManager.default
+        for item in files {
+            progress.current = item.name
+            offloadProgress = progress
+            do {
+                if item.isICloudDownloaded {
+                    if item.isICloudUploaded {
+                        try fm.evictUbiquitousItem(at: item.url)
+                        progress.freed += item.spaceOnDisk
+                        moved.insert(item.url)
+                    } else {
+                        records.insert(OffloadRecord(originalPath: item.path, bucket: "iCloud Drive", key: item.path, size: item.size,
+                                                     modified: item.modified, offloadedAt: Date(), stubPath: nil,
+                                                     destination: "icloud-inplace", pendingEvict: true), at: 0)
+                    }
+                } else {
+                    let rel = CloudStore.key(for: item.url)
+                    let dest = AppPaths.uniqueURL(for: CloudStore.iCloudDriveRoot.appendingPathComponent("Attic").appendingPathComponent(rel))
+                    try fm.createDirectory(at: dest.deletingLastPathComponent(), withIntermediateDirectories: true)
+                    try fm.setUbiquitous(true, itemAt: item.url, destinationURL: dest)
+                    try? fm.createSymbolicLink(at: item.url, withDestinationURL: dest)
+                    records.removeAll { $0.originalPath == item.path && $0.isICloud }
+                    records.insert(OffloadRecord(originalPath: item.path, bucket: "iCloud Drive", key: dest.path, size: item.size,
+                                                 modified: item.modified, offloadedAt: Date(), stubPath: item.path,
+                                                 destination: "icloud", pendingEvict: true), at: 0)
+                    moved.insert(item.url)
+                }
+            } catch {
+                progress.failures.append("\(item.name): \(error.localizedDescription)")
+            }
+            progress.done += 1
+            progress.bytesDone += item.size
+            offloadProgress = progress
+        }
+        saveManifest()
+        progress.finished = true
+        progress.current = ""
+        offloadProgress = progress
+        library.remove(urls: moved)
+        startICloudWatcher()
+        checkICloudUploads()
+    }
+
+    func startICloudWatcher() {
+        guard evictTimer == nil, iCloudPendingCount > 0 else { return }
+        evictTimer = Timer.scheduledTimer(withTimeInterval: 10, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.checkICloudUploads() }
+        }
+    }
+
+    /// Evicts iCloud files whose upload has finished.
+    func checkICloudUploads() {
+        var changed = false
+        var waiting = 0
+        var lastError: String?
+        for i in records.indices where records[i].isICloud && records[i].pendingEvict == true {
+            let url = URL(fileURLWithPath: records[i].key)
+            let keys: Set<URLResourceKey> = [.ubiquitousItemIsUploadedKey, .ubiquitousItemUploadingErrorKey, .ubiquitousItemDownloadingStatusKey]
+            guard let rv = try? url.resourceValues(forKeys: keys) else { continue }
+            if rv.ubiquitousItemDownloadingStatus == .notDownloaded {
+                records[i].pendingEvict = false; changed = true; continue
+            }
+            if rv.ubiquitousItemIsUploaded == true, (try? FileManager.default.evictUbiquitousItem(at: url)) != nil {
+                records[i].pendingEvict = false
+                changed = true
+            } else {
+                waiting += 1
+                if let err = rv.ubiquitousItemUploadingError { lastError = err.localizedDescription }
+            }
+        }
+        iCloudStatus = waiting == 0 ? nil : "Waiting for iCloud to upload \(Fmt.plural(waiting, "file"))" + (lastError.map { ": \($0)" } ?? "…")
+        if changed { saveManifest(); library.refreshDisk() }
+        if waiting == 0 { evictTimer?.invalidate(); evictTimer = nil }
+    }
+
+    /// Brings an iCloud-offloaded file back: downloads it and, if Attic moved it into iCloud Drive, moves it home.
+    func restoreICloud(_ record: OffloadRecord, open: Bool) async {
+        let fm = FileManager.default
+        let icloudURL = URL(fileURLWithPath: record.key)
+        do {
+            try? fm.startDownloadingUbiquitousItem(at: icloudURL)
+            if record.destination == "icloud" {
+                library.show(toast: "Downloading \(record.name) from iCloud…")
+                for _ in 0..<720 { // up to an hour
+                    let st = (try? icloudURL.resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey]))?.ubiquitousItemDownloadingStatus
+                    if st == .current || st == .downloaded { break }
+                    try await Task.sleep(nanoseconds: 5_000_000_000)
+                }
+                let original = URL(fileURLWithPath: record.originalPath)
+                if (try? original.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink == true { try fm.removeItem(at: original) }
+                let dest = AppPaths.uniqueURL(for: original)
+                try fm.setUbiquitous(false, itemAt: icloudURL, destinationURL: dest)
+                if open { NSWorkspace.shared.open(dest) } else { NSWorkspace.shared.activateFileViewerSelecting([dest]) }
+            } else if open {
+                NSWorkspace.shared.open(icloudURL)
+            }
+            records.removeAll { $0.id == record.id }
+            saveManifest()
+            library.show(toast: "\(record.name) is back on this Mac")
+            library.refreshDisk()
+        } catch {
+            library.show(toast: "Couldn’t restore \(record.name): \(error.localizedDescription)")
+        }
     }
 
     // MARK: Manifest

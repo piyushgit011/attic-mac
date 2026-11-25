@@ -38,7 +38,7 @@ struct InspectorView: View {
                         Button("Show in Finder") { FileActions.reveal([item]) }
                     }
                     if !item.url.isAtticStub {
-                        Button { nav.offloadRequest = [item] } label: { Label("Offload to R2", systemImage: "icloud.and.arrow.up") }
+                        Button { nav.offloadRequest = [item] } label: { Label("Offload to R2 or iCloud…", systemImage: "icloud.and.arrow.up") }
                     }
                 }
                 .padding(16)

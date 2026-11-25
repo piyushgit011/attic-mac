@@ -108,6 +108,10 @@ struct FileItem: Identifiable, Hashable {
     let source: String?
     let isScreenshot: Bool
     let isCloudOnly: Bool
+    /// In iCloud Drive (Desktop & Documents, or iCloud Drive itself) with a full copy downloaded here.
+    var isICloudDownloaded: Bool = false
+    /// iCloud already holds the latest version, so the local copy can be removed safely.
+    var isICloudUploaded: Bool = false
     let isPackage: Bool
     var bundleID: String? = nil
 

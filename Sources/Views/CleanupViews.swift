@@ -109,11 +109,19 @@ struct CleanupReviewView: View {
                 Button(checked.count == items.count ? "Select None" : "Select All") {
                     checked = checked.count == items.count ? [] : Set(items.map(\.url))
                 }
-                if card.kind != .unusedApps && card.kind != .oldInstallers {
-                    Button { nav.offloadRequest = picked } label: { Label("Offload \(Fmt.bytes(pickedBytes)) to R2", systemImage: "icloud.and.arrow.up") }
+                if card.kind == .alreadyInICloud {
+                    Button {
+                        AppState.shared.cloud.removeDownloads(picked)
+                        checked = []
+                    } label: { Label("Remove \(Fmt.bytes(pickedBytes)) of downloads", systemImage: "icloud.and.arrow.down") }
+                        .buttonStyle(.borderedProminent).disabled(picked.isEmpty)
+                } else if card.kind != .unusedApps && card.kind != .oldInstallers {
+                    Button { nav.offloadRequest = picked } label: { Label("Offload \(Fmt.bytes(pickedBytes))…", systemImage: "icloud.and.arrow.up") }
                         .buttonStyle(.borderedProminent).disabled(picked.isEmpty)
                 }
-                if card.prefersOffload {
+                if card.kind == .alreadyInICloud {
+                    EmptyView()
+                } else if card.prefersOffload {
                     Button(role: .destructive) {
                         Task { await library.trash(picked); checked = [] }
                     } label: { Label("Trash Selected", systemImage: "trash") }

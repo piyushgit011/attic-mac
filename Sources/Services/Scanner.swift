@@ -7,7 +7,7 @@ enum Scanner {
         .isRegularFileKey, .isDirectoryKey, .isPackageKey, .isSymbolicLinkKey,
         .fileSizeKey, .totalFileAllocatedSizeKey,
         .creationDateKey, .contentModificationDateKey, .addedToDirectoryDateKey, .contentAccessDateKey,
-        .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey,
+        .isUbiquitousItemKey, .ubiquitousItemDownloadingStatusKey, .ubiquitousItemIsUploadedKey,
     ]
     static let keySet = Set(keys)
 
@@ -66,7 +66,7 @@ enum Scanner {
         let isCloudOnly = rv.isUbiquitousItem == true && rv.ubiquitousItemDownloadingStatus == .notDownloaded
         let isShot = info.category == .images && (hasXattr(path, "com.apple.metadata:kMDItemIsScreenCapture")
             || name.hasPrefix("Screenshot ") || name.hasPrefix("Screen Shot ") || name.hasPrefix("CleanShot "))
-        return FileItem(
+        var item = FileItem(
             url: url,
             name: name,
             lowerName: name.lowercased(),
@@ -85,6 +85,11 @@ enum Scanner {
             isCloudOnly: isCloudOnly,
             isPackage: isPackage
         )
+        if rv.isUbiquitousItem == true && !isCloudOnly {
+            item.isICloudDownloaded = true
+            item.isICloudUploaded = rv.ubiquitousItemIsUploaded == true
+        }
+        return item
     }
 
     // MARK: Apps

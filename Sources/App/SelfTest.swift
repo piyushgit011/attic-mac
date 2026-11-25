@@ -9,6 +9,23 @@ enum SelfTest {
         Task { @MainActor in
             var failures = await run()
             if CommandLine.arguments.contains("--offload") { failures += await offloadTest() }
+            if CommandLine.arguments.contains("--icloud") { failures += await iCloudTest() }
+            if let i = CommandLine.arguments.firstIndex(of: "--icloudtest"), i + 2 < CommandLine.arguments.count {
+                // arg1: a downloaded iCloud file to evict; arg2: a local file to move into iCloud Drive
+                let evictURL = URL(fileURLWithPath: CommandLine.arguments[i + 1])
+                do { try FileManager.default.evictUbiquitousItem(at: evictURL); print("evict OK") }
+                catch { let e = error as NSError; print("evict FAILED \(e.domain) \(e.code) \(e.localizedDescription)") }
+                let local = URL(fileURLWithPath: CommandLine.arguments[i + 2])
+                let docs = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Library/Mobile Documents/com~apple~CloudDocs/Attic", isDirectory: true)
+                do {
+                    try FileManager.default.createDirectory(at: docs, withIntermediateDirectories: true)
+                    let dest = docs.appendingPathComponent(local.lastPathComponent)
+                    try FileManager.default.setUbiquitous(true, itemAt: local, destinationURL: dest)
+                    print("setUbiquitous OK -> \(dest.path)")
+                    try FileManager.default.createSymbolicLink(at: local, withDestinationURL: dest)
+                    print("symlink OK")
+                } catch { let e = error as NSError; print("move to iCloud FAILED \(e.domain) \(e.code) \(e.localizedDescription)") }
+            }
             if let i = CommandLine.arguments.firstIndex(of: "--trashtest"), i + 1 < CommandLine.arguments.count {
                 let url = URL(fileURLWithPath: CommandLine.arguments[i + 1])
                 do {
@@ -232,6 +249,46 @@ enum SelfTest {
         check(!cloud.records.contains { $0.key == key }, "removed from Offloaded list", &f)
 
         try? await cloud.client?.delete(key: key, bucket: home)
+        try? FileManager.default.removeItem(at: dir)
+        return f
+    }
+
+    @MainActor
+    static func iCloudTest() async -> Int {
+        var f = 0
+        print("— Offload to iCloud Drive & restore")
+        let cloud = AppState.shared.cloud
+        let dir = AppPaths.caches.appendingPathComponent("icloud-selftest", isDirectory: true)
+        try? FileManager.default.createDirectory(at: dir, withIntermediateDirectories: true)
+        let file = dir.appendingPathComponent("Trip photos (test).zip")
+        var data = Data(count: 3 * 1024 * 1024)
+        data.withUnsafeMutableBytes { p in for i in stride(from: 0, to: p.count, by: 512) { p[i] = UInt8(truncatingIfNeeded: i &* 31) } }
+        try? data.write(to: file)
+        let hash = SHA256.hash(data: data).description
+        guard let rv = try? file.resourceValues(forKeys: Scanner.keySet), let item = Scanner.makeItem(url: file, rv: rv, isPackage: false) else {
+            check(false, "make test file", &f); return f
+        }
+        await cloud.offloadToICloud([item])
+        let isLink = (try? FileManager.default.attributesOfItem(atPath: file.path))?[.type] as? FileAttributeType == .typeSymbolicLink
+        check(isLink, "link left in the original folder", &f)
+        guard let rec = cloud.records.first(where: { $0.originalPath == file.path && $0.isICloud }) else { check(false, "record", &f); return f }
+        print("    now in \(Fmt.path(rec.key))")
+        var evicted = false
+        for _ in 0..<45 {
+            cloud.checkICloudUploads()
+            if cloud.records.first(where: { $0.id == rec.id })?.pendingEvict == false { evicted = true; break }
+            try? await Task.sleep(nanoseconds: 2_000_000_000)
+        }
+        check(evicted, "uploaded, then removed from this Mac", &f)
+        let st = (try? URL(fileURLWithPath: rec.key).resourceValues(forKeys: [.ubiquitousItemDownloadingStatusKey]))?.ubiquitousItemDownloadingStatus
+        check(st == .notDownloaded, "iCloud copy is cloud-only (0 bytes here)", &f)
+        let readable = (try? Data(contentsOf: file)).map { SHA256.hash(data: $0).description } == hash
+        check(readable, "opening the link downloads the identical file", &f)
+        if let r = cloud.records.first(where: { $0.id == rec.id }) { await cloud.restoreICloud(r, open: false) }
+        let back = (try? Data(contentsOf: file)).map { SHA256.hash(data: $0).description }
+        let stillLink = (try? FileManager.default.attributesOfItem(atPath: file.path))?[.type] as? FileAttributeType == .typeSymbolicLink
+        check(back == hash && !stillLink, "restored as a real file, identical", &f)
+        check(!FileManager.default.fileExists(atPath: rec.key), "moved back out of iCloud Drive", &f)
         try? FileManager.default.removeItem(at: dir)
         return f
     }

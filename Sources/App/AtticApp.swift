@@ -190,6 +190,7 @@ final class NavigationModel {
         didSet { UserDefaults.standard.set(cardSize, forKey: Prefs.cardSize) }
     }
     var offloadRequest: [FileItem]?
+    var autoStartOffload = false
     var quickLookURL: URL?
     var quickLookList: [URL] = []
 
@@ -276,7 +277,7 @@ struct AtticCommands: Commands {
                 let s = AppState.shared
                 FileActions.copyText(s.nav.selectedItems(in: s.library))
             }.keyboardShortcut("c", modifiers: [.command, .shift])
-            Button("Offload to R2…") {
+            Button("Offload to R2 or iCloud…") {
                 let s = AppState.shared
                 let sel = s.nav.selectedItems(in: s.library)
                 if !sel.isEmpty { s.nav.offloadRequest = sel }

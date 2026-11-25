@@ -124,9 +124,10 @@ struct SidebarView: View {
                 row(.deepClean, "Deep Clean", "hammer")
                 row(.memory, "Memory & Swap", "memorychip", badge: Int64(memory.snapshot.swapUsed))
             }
-            Section("Cloudflare R2") {
+            Section("Cloud") {
                 row(.cloud, cloud.isConnected ? (cloud.creds?.bucket ?? "Bucket") : "Connect R2", "cloud")
                 row(.offloaded, "Offloaded", "icloud.and.arrow.up", count: cloud.records.isEmpty ? nil : cloud.records.count)
+                    .help(cloud.iCloudStatus ?? "Files moved to R2 or iCloud Drive")
             }
         }
         .listStyle(.sidebar)
