@@ -101,7 +101,7 @@ struct HomeView: View {
     private var cleanupRow: some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack {
-                SectionHeader(title: "Clean Up", subtitle: "Up to \(Fmt.bytes(library.cleanupCards.reduce(0) { $0 + $1.bytes })) you could get back. You review everything first.")
+                SectionHeader(title: "Clean Up", subtitle: "Up to \(Fmt.bytes(library.cleanupTotal)) you could get back. You review everything first.")
                 Spacer()
                 Button("See all") { nav.go(.cleanup) }
             }

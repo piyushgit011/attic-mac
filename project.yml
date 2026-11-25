@@ -32,3 +32,7 @@ targets:
         CODE_SIGN_ENTITLEMENTS: Resources/Attic.entitlements
         ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
         OTHER_CODE_SIGN_FLAGS: "--timestamp=none"
+      configs:
+        Release:
+          # Notarization rejects the debugger entitlement Xcode injects by default
+          CODE_SIGN_INJECT_BASE_ENTITLEMENTS: NO

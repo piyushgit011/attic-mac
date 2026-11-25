@@ -79,6 +79,7 @@ enum Prefs {
 
     /// Where Deep Clean looks for node_modules and build output: the library folders plus ~/Developer.
     static var projectRootPaths: [String] {
+        if let demo = DemoData.root { return [demo.appendingPathComponent("Developer").path] }
         var roots = scanRootPaths
         let dev = FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Developer").path
         if FileManager.default.fileExists(atPath: dev), !roots.contains(where: { dev.hasPrefix($0) }) { roots.append(dev) }
@@ -86,7 +87,12 @@ enum Prefs {
     }
 
     static var scanRootPaths: [String] {
-        get { UserDefaults.standard.stringArray(forKey: scanRoots) ?? defaultRoots() }
+        get {
+            if let demo = DemoData.root {
+                return ["Desktop", "Documents", "Downloads", "Movies", "Music", "Pictures"].map { demo.appendingPathComponent($0).path }
+            }
+            return UserDefaults.standard.stringArray(forKey: scanRoots) ?? defaultRoots()
+        }
         set { UserDefaults.standard.set(newValue, forKey: scanRoots) }
     }
 }

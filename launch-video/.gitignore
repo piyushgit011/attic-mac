@@ -1,0 +1,7 @@
+node_modules/
+out/
+# Regenerated locally: recordings (scripts/prep-clips.sh), screenshots (README art), music + SFX (npm run audio)
+public/rec/
+public/shots/
+public/music/
+public/sfx/

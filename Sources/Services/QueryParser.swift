@@ -74,8 +74,9 @@ enum SearchChip: Hashable, Identifiable {
             return it.whereFroms.contains { $0.lowercased().contains(s.lowercased()) }
         case .text(let t):
             let words = t.split(separator: " ").map(String.init)
-            return words.allSatisfy { w in
-                it.lowerName.contains(w) || (ocr?.contains(w) ?? false)
+            return words.allSatisfy { w -> Bool in
+                let compact = String(w.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }.map(Character.init))
+                return it.lowerName.contains(w) || (ocr?.contains(w) ?? false) || (!compact.isEmpty && (ocr?.contains(compact) ?? false))
                     || it.folderName.lowercased().contains(w) || (it.source?.lowercased().contains(w) ?? false)
             }
         }

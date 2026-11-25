@@ -30,7 +30,7 @@ struct InspectorView: View {
                     if let text = ocr.text(for: item.url), !text.isEmpty {
                         VStack(alignment: .leading, spacing: 6) {
                             Text("Text in image").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
-                            Text(text).font(.callout).textSelection(.enabled).lineLimit(12)
+                            Text(text.components(separatedBy: "\n").dropLast().joined(separator: "\n")).font(.callout).textSelection(.enabled).lineLimit(12)
                         }
                     }
                     HStack {

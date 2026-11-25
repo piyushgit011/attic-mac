@@ -35,9 +35,35 @@ struct ContentView: View {
             }
         }
         .overlay(alignment: .bottom) { ToastView() }
-        .sheet(item: Binding(get: { nav.offloadRequest.map(OffloadRequest.init) }, set: { nav.offloadRequest = $0?.items })) { req in
+        .sheet(item: Binding(get: { Tour.isActive ? nil : nav.offloadRequest.map(OffloadRequest.init) }, set: { nav.offloadRequest = $0?.items })) { req in
             OffloadSheet(items: req.items)
         }
+        .overlay {
+            // Tours film one window, so pop-ups are drawn inside it instead of in their own windows.
+            if Tour.isActive {
+                ZStack {
+                    if let items = nav.offloadRequest {
+                        Color.black.opacity(0.25).ignoresSafeArea()
+                        OffloadSheet(items: items)
+                            .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 16))
+                            .shadow(color: .black.opacity(0.35), radius: 30, y: 12)
+                            .frame(maxHeight: .infinity, alignment: .top).padding(.top, 70)
+                            .transition(.move(edge: .top).combined(with: .opacity))
+                    }
+                    if QuickSearchController.shared.state.inlineVisible {
+                        Color.black.opacity(0.2).ignoresSafeArea()
+                        QuickSearchView(close: { QuickSearchController.shared.hide() })
+                            .clipShape(RoundedRectangle(cornerRadius: 16))
+                            .shadow(color: .black.opacity(0.35), radius: 30, y: 12)
+                            .frame(maxHeight: .infinity, alignment: .top).padding(.top, 60)
+                            .transition(.scale(scale: 0.96).combined(with: .opacity))
+                    }
+                }
+                .animation(.spring(duration: 0.35), value: nav.offloadRequest != nil)
+                .animation(.spring(duration: 0.3), value: QuickSearchController.shared.state.inlineVisible)
+            }
+        }
+        .modifier(TourActiveLook())
         .quickLookPreview($nav.quickLookURL, in: nav.quickLookList)
         .confirmationDialog(cloudDeleteTitle, isPresented: Binding(get: { !library.pendingCloudDelete.isEmpty },
                                                                   set: { if !$0 { library.pendingCloudDelete = [] } })) {
@@ -119,7 +145,7 @@ struct SidebarView: View {
                 row(.screenshots, "Screenshots", "camera.viewfinder")
             }
             Section("Free Up Space") {
-                row(.cleanup, "Clean Up", "sparkles", badge: library.cleanupCards.reduce(0) { $0 + $1.bytes })
+                row(.cleanup, "Clean Up", "sparkles", badge: library.cleanupTotal)
                 row(.duplicates, "Duplicates", "square.on.square")
                 row(.deepClean, "Deep Clean", "hammer")
                 row(.memory, "Memory & Swap", "memorychip", badge: Int64(memory.snapshot.swapUsed))
@@ -174,7 +200,7 @@ struct DiskMeter: View {
                 .font(.caption2).foregroundStyle(.secondary)
         }
         .padding(10)
-        .background(.quaternary.opacity(0.5), in: RoundedRectangle(cornerRadius: 10))
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
     }
 }
 
@@ -304,4 +330,12 @@ struct CardBackground: ViewModifier {
 
 extension View {
     func card() -> some View { modifier(CardBackground()) }
+}
+
+
+/// During tours the app usually isn't frontmost; render controls with their active colors anyway.
+struct TourActiveLook: ViewModifier {
+    func body(content: Content) -> some View {
+        if Tour.isActive { content.environment(\.controlActiveState, .key) } else { content }
+    }
 }

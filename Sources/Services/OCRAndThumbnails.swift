@@ -15,7 +15,7 @@ final class OCRIndex {
 
     private var mtimes: [String: Double] = [:]
     private var task: Task<Void, Never>?
-    private var cacheURL: URL { AppPaths.support.appendingPathComponent("ocr-index.json") }
+    private var cacheURL: URL { AppPaths.support.appendingPathComponent("ocr-index-v2.json") }
 
     private struct Entry: Codable { let m: Double; let t: String }
 
@@ -42,7 +42,7 @@ final class OCRIndex {
             for (n, item) in work.enumerated() {
                 if Task.isCancelled { break }
                 let text = OCRIndex.recognize(item.url, fast: false) ?? ""
-                batch.append((item.path, item.modified.timeIntervalSince1970, text.lowercased()))
+                batch.append((item.path, item.modified.timeIntervalSince1970, OCRIndex.searchable(text)))
                 if batch.count >= 25 || n == work.count - 1 {
                     let flush = batch
                     batch.removeAll()
@@ -70,6 +70,13 @@ final class OCRIndex {
             .filter { !$0.isEmpty }
             .joined(separator: "\n\n")
         }.value
+    }
+
+    /// Lowercased text plus a letters-and-digits-only copy, so "wifi" finds "Wi-Fi" and "1z84a" finds "1Z 84A".
+    nonisolated static func searchable(_ text: String) -> String {
+        let lower = text.lowercased()
+        let compact = String(lower.unicodeScalars.filter { CharacterSet.alphanumerics.contains($0) }.map(Character.init))
+        return lower + "\n" + compact
     }
 
     nonisolated static func recognize(_ url: URL, fast: Bool) -> String? {

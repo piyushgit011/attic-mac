@@ -140,7 +140,7 @@ struct DeepCleanView: View {
         m.scanning = true
         let roots = Prefs.projectRootPaths.map { URL(fileURLWithPath: $0) }
         Task.detached(priority: .userInitiated) {
-            let found = DeepCleanScanner.scan(projectRoots: roots, progress: { p in
+            let found = DemoData.root != nil ? DemoData.junk() : DeepCleanScanner.scan(projectRoots: roots, progress: { p in
                 Task { @MainActor in m.current = p }
             }, isCancelled: { false })
             await MainActor.run {

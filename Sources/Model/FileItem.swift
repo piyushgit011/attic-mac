@@ -124,7 +124,7 @@ struct FileItem: Identifiable, Hashable {
     /// Best guess at the last time this file was used.
     var lastUsed: Date { max(accessed ?? modified, modified) }
     var isInstaller: Bool { TypeInfo.installerExts.contains(ext) }
-    var isInDownloads: Bool { path.hasPrefix(FileManager.default.homeDirectoryForCurrentUser.appendingPathComponent("Downloads").path + "/") }
+    var isInDownloads: Bool { path.hasPrefix(DemoData.downloadsPath + "/") }
     /// Bytes this file actually occupies on this Mac. iCloud-only (dataless) files use none.
     var spaceOnDisk: Int64 { isCloudOnly ? 0 : (allocatedSize > 0 ? allocatedSize : size) }
     var sizeLabel: String { isCloudOnly ? "\(Fmt.bytes(size)) in iCloud" : Fmt.bytes(spaceOnDisk) }

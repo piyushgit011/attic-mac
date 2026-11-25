@@ -24,6 +24,7 @@
 		B256C761617EC42BEDAFA550 /* SortKeys.swift in Sources */ = {isa = PBXBuildFile; fileRef = 66606B682618DAA637004D08 /* SortKeys.swift */; };
 		B40F9FCEAEED968241EAC7C1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6496A177DDE9CF80C05FFF8A /* ContentView.swift */; };
 		B48DA780440DA863BC5B9EF3 /* OCRAndThumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = A231D6FD8451CA530DC40295 /* OCRAndThumbnails.swift */; };
+		B85C1EE3989E9663D71161FC /* DemoAndTour.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21336332D57441E17D59040 /* DemoAndTour.swift */; };
 		C880F11B2CA9FB171A40719B /* CloudViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC8EF0ED878C8B38AF2CF29 /* CloudViews.swift */; };
 		C8D1EE8CFB239B1B0AB79CA1 /* FileBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E20A76E86C8A6F53C759658 /* FileBrowserView.swift */; };
 		F1CF62B9D7E3401D5A0F7585 /* SelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEEEAE4036A978D72A85F5C /* SelfTest.swift */; };
@@ -54,6 +55,7 @@
 		9A0F23EAF419F75CAA05F52C /* DeepCleanAndMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DeepCleanAndMemory.swift; sourceTree = "<group>"; };
 		A231D6FD8451CA530DC40295 /* OCRAndThumbnails.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OCRAndThumbnails.swift; sourceTree = "<group>"; };
 		AACBCD8EC7CA498C9BF18C7A /* FileItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileItem.swift; sourceTree = "<group>"; };
+		B21336332D57441E17D59040 /* DemoAndTour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAndTour.swift; sourceTree = "<group>"; };
 		B546A76B2CEDDAFA761C86DC /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		CFEEEAE4036A978D72A85F5C /* SelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfTest.swift; sourceTree = "<group>"; };
 		E8E178DFA155DF035C6C7CC5 /* CleanupViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupViews.swift; sourceTree = "<group>"; };
@@ -72,6 +74,7 @@
 			isa = PBXGroup;
 			children = (
 				5E70D3D8AFE478ADE09DF7A8 /* AtticApp.swift */,
+				B21336332D57441E17D59040 /* DemoAndTour.swift */,
 				CFEEEAE4036A978D72A85F5C /* SelfTest.swift */,
 			);
 			path = App;
@@ -233,6 +236,7 @@
 				B40F9FCEAEED968241EAC7C1 /* ContentView.swift in Sources */,
 				F7AE4D504957690F411CA9B5 /* DeepClean.swift in Sources */,
 				AEB771E741A1F73DBC26CA27 /* DeepCleanAndMemory.swift in Sources */,
+				B85C1EE3989E9663D71161FC /* DemoAndTour.swift in Sources */,
 				C8D1EE8CFB239B1B0AB79CA1 /* FileBrowserView.swift in Sources */,
 				F9ECB3938F2D11ED87A283F3 /* FileItem.swift in Sources */,
 				0AE05A394B16B357E794655C /* Formatting.swift in Sources */,
@@ -407,6 +411,7 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_ENTITLEMENTS = Resources/Attic.entitlements;
+				CODE_SIGN_INJECT_BASE_ENTITLEMENTS = NO;
 				COMBINE_HIDPI_IMAGES = YES;
 				INFOPLIST_FILE = Resources/Info.plist;
 				LD_RUNPATH_SEARCH_PATHS = (

@@ -21,6 +21,13 @@ final class LibraryStore {
     private var cancelFlag = CancelFlag()
 
     var hasScanned: Bool { lastScan != nil }
+    /// Space across all Clean Up cards, counting a file once even if it shows on two cards.
+    var cleanupTotal: Int64 {
+        var seen = Set<URL>()
+        var total: Int64 = 0
+        for c in cleanupCards { for it in c.items where seen.insert(it.url).inserted { total += it.spaceOnDisk } }
+        return total
+    }
 
     func startIfNeeded() {
         if lastScan == nil && !isScanning { scan() }
@@ -40,7 +47,7 @@ final class LibraryStore {
             }, isCancelled: { flag.cancelled })
             if flag.cancelled { return }
             let apps = Scanner.scanApps()
-            let all = files + apps
+            let all = DemoData.apply(files) + apps
             let index = LibraryStore.buildIndex(all)
             await MainActor.run {
                 guard let self, !flag.cancelled else { return }

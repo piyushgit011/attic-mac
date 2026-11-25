@@ -75,6 +75,7 @@ extension View {
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         QuickSearchController.shared.installHotKey()
+        Tour.startIfRequested()
     }
 
     func application(_ application: NSApplication, open urls: [URL]) {
@@ -309,4 +310,17 @@ final class DuplicatesModel {
     var scanning = false
     var progress = 0.0
     var scanned = false
+
+    func scan(_ items: [FileItem]) {
+        scanning = true
+        progress = 0
+        Task.detached(priority: .userInitiated) {
+            let found = DuplicateFinder.find(in: items, progress: { p in Task { @MainActor in self.progress = p } }, isCancelled: { false })
+            await MainActor.run {
+                self.groups = found
+                self.scanning = false
+                self.scanned = true
+            }
+        }
+    }
 }

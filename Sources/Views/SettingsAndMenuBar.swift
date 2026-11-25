@@ -166,6 +166,9 @@ struct MenuBarView: View {
 final class QuickSearchController {
     static let shared = QuickSearchController()
     private var panel: NSPanel?
+    let state = QuickSearchState()
+    /// When set (tours), the panel opens over this frame instead of the top of the screen.
+    var anchor: NSRect?
     private var hotKeyRef: EventHotKeyRef?
     private var handlerInstalled = false
 
@@ -189,6 +192,11 @@ final class QuickSearchController {
     }
 
     func show() {
+        if Tour.isActive {
+            state.text = ""
+            state.inlineVisible = true
+            return
+        }
         if panel == nil {
             let p = KeyPanel(contentRect: NSRect(x: 0, y: 0, width: 640, height: 420),
                              styleMask: [.titled, .fullSizeContentView, .nonactivatingPanel],
@@ -206,7 +214,9 @@ final class QuickSearchController {
             panel = p
         }
         guard let panel else { return }
-        if let screen = NSScreen.main {
+        if let a = anchor {
+            panel.setFrameOrigin(NSPoint(x: a.midX - 320, y: a.maxY - 140 - 420))
+        } else if let screen = NSScreen.main {
             let f = screen.visibleFrame
             panel.setFrameOrigin(NSPoint(x: f.midX - 320, y: f.maxY - f.height * 0.22 - 420))
         }
@@ -216,7 +226,17 @@ final class QuickSearchController {
         NotificationCenter.default.post(name: .quickSearchShown, object: nil)
     }
 
-    func hide() { panel?.orderOut(nil) }
+    func hide() {
+        state.inlineVisible = false
+        panel?.orderOut(nil)
+    }
+}
+
+@MainActor @Observable
+final class QuickSearchState {
+    var text = ""
+    var index = 0
+    var inlineVisible = false
 }
 
 final class KeyPanel: NSPanel {
@@ -233,8 +253,9 @@ struct QuickSearchView: View {
     @Environment(LibraryStore.self) private var library
     @Environment(OCRIndex.self) private var ocr
     @Environment(\.openWindow) private var openWindow
-    @State private var text = ""
-    @State private var index = 0
+    @Bindable private var state = QuickSearchController.shared.state
+    private var text: String { state.text }
+    private var index: Int { state.index }
     @FocusState private var focused: Bool
 
     private var results: [FileItem] {
@@ -250,11 +271,11 @@ struct QuickSearchView: View {
         VStack(spacing: 0) {
             HStack(spacing: 10) {
                 Image(systemName: "magnifyingglass").font(.title2).foregroundStyle(.secondary)
-                TextField("Search your Mac in plain English…", text: $text)
+                TextField("Search your Mac in plain English…", text: $state.text)
                     .textFieldStyle(.plain).font(.system(size: 22))
                     .focused($focused)
                     .onSubmit { activate(list) }
-                    .onChange(of: text) { _, _ in index = 0 }
+                    .onChange(of: state.text) { _, _ in state.index = 0 }
             }
             .padding(16)
             if !q.isEmpty {
@@ -283,7 +304,7 @@ struct QuickSearchView: View {
                         .padding(.horizontal, 12).padding(.vertical, 6)
                         .background(i == index ? Color.accentColor.opacity(0.2) : .clear, in: RoundedRectangle(cornerRadius: 8))
                         .contentShape(Rectangle())
-                        .onTapGesture { index = i; activate(list) }
+                        .onTapGesture { state.index = i; activate(list) }
                     }
                 }
                 .padding(8)
@@ -301,11 +322,11 @@ struct QuickSearchView: View {
         }
         .frame(width: 640, height: 420)
         .background(.regularMaterial)
-        .onKeyPress(.downArrow) { index = min(index + 1, max(0, list.count - 1)); return .handled }
-        .onKeyPress(.upArrow) { index = max(0, index - 1); return .handled }
+        .onKeyPress(.downArrow) { state.index = min(index + 1, max(0, list.count - 1)); return .handled }
+        .onKeyPress(.upArrow) { state.index = max(0, index - 1); return .handled }
         .onKeyPress(.escape) { close(); return .handled }
         .onAppear { focused = true }
-        .onReceive(NotificationCenter.default.publisher(for: .quickSearchShown)) { _ in focused = true; text = "" }
+        .onReceive(NotificationCenter.default.publisher(for: .quickSearchShown)) { _ in focused = true; state.text = "" }
     }
 
     private func activate(_ list: [FileItem]) {

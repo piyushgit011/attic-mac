@@ -68,6 +68,11 @@ final class MemoryMonitor {
     }
 
     func refresh() {
+        if DemoData.root != nil {
+            snapshot = MemoryMonitor.demoSnapshot
+            apps = MemoryMonitor.demoApps
+            return
+        }
         guard !isRefreshing else { return }
         isRefreshing = true
         let running = NSWorkspace.shared.runningApplications.map {
@@ -84,10 +89,38 @@ final class MemoryMonitor {
         }
     }
 
+    // MARK: Demo data (screenshots and recordings)
+
+    static let demoSnapshot = MemorySnapshot(physical: 17_179_869_184, used: 15_600_000_000, appMemory: 11_200_000_000,
+                                             wired: 2_100_000_000, compressed: 2_300_000_000, cached: 900_000_000,
+                                             swapUsed: 9_400_000_000, swapTotal: 10_737_418_240, swapFilesOnDisk: 10_737_418_240,
+                                             swapFileCount: 10, pressure: 2)
+
+    static var demoApps: [AppMemory] {
+        func app(_ name: String, _ bundle: String, _ gb: Double, _ procs: Int, active: Bool = false, system: Bool = false, me: Bool = false) -> AppMemory {
+            let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: bundle)
+            return AppMemory(id: bundle, name: name, bundleURL: url, pids: Array(repeating: 0, count: procs), footprint: UInt64(gb * 1_000_000_000),
+                             isGUI: true, isActive: active, isSelf: me, isAppleSystem: system)
+        }
+        return [
+            app("Google Chrome", "com.google.Chrome", 6.2, 38),
+            app("Docker Desktop", "com.docker.docker", 2.4, 6),
+            app("Xcode", "com.apple.dt.Xcode", 3.1, 9, active: true),
+            app("Figma", "com.figma.Desktop", 1.8, 7),
+            app("Slack", "com.tinyspeck.slackmacgap", 1.4, 8),
+            app("Visual Studio Code", "com.microsoft.VSCode", 1.1, 14),
+            app("Spotify", "com.spotify.client", 0.64, 5),
+            app("Notion", "notion.id", 0.52, 4),
+            app("Safari", "com.apple.Safari", 0.48, 6, system: true),
+            app("Attic", "studio.versely.attic", 0.12, 1, me: true),
+        ]
+    }
+
     // MARK: Actions
 
     /// Asks the app to quit normally (it can save its work).
     func quit(_ app: AppMemory) {
+        if DemoData.root != nil { apps.removeAll { $0.id == app.id }; return }
         var asked = false
         for pid in app.pids {
             if let ra = NSRunningApplication(processIdentifier: pid) {
