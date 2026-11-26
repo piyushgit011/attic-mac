@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.3.1
+- **Large Files leaves out app libraries.** Photos, Music, TV, iMovie, Final Cut and Lightroom libraries are no longer listed or counted in the red badge, since trashing or moving one can damage it. A note at the top shows how big they are and how to free space from inside their app (for Photos, iCloud Photos with Optimize Mac Storage).
+- When nothing big takes space on your Mac, Large Files says so and counts the big files that are only in iCloud.
+- App libraries show their Finder names: "Photos Library", not "Photos Library.photoslibrary".
+
 ## 1.3.0
 - **A Finder alternative.** Locations in the sidebar (home, Desktop, Documents, Downloads, Pictures, Movies, Music, Developer, iCloud Drive, Applications) open like Finder: folders as cards with their files peeking out, big thumbnails, a clickable path bar, folder sizes measured in the background, and live updates when something changes.
 - **Finder actions:** drag files onto any folder to move them (⌥ copies), New Folder (⇧⌘N), Rename, Go to Folder (⇧⌘G), Enclosing Folder (⌘↑), Show Hidden Files (⇧⌘.), Show in Enclosing Folder, and pinned folders in the sidebar.

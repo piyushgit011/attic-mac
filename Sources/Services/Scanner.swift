@@ -58,8 +58,9 @@ enum Scanner {
     }
 
     static func makeItem(url: URL, rv: URLResourceValues, isPackage: Bool) -> FileItem? {
-        let name = url.lastPathComponent
         let ext = url.pathExtension.lowercased()
+        // Like Finder, app libraries hide their extension: "Photos Library", not "Photos Library.photoslibrary".
+        let name = FileItem.appLibraryExts.contains(ext) ? url.deletingPathExtension().lastPathComponent : url.lastPathComponent
         let info = TypeInfo.lookup(ext)
         let path = url.path
         let froms = whereFroms(path)

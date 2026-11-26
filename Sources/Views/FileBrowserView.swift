@@ -159,6 +159,8 @@ struct FileBrowserView: View {
     var chips: AnyView? = nil
     var banner: AnyView? = nil
     var actions: AnyView? = nil
+    var emptyTitle: String? = nil
+    var emptyMessage: String? = nil
 
     @Environment(NavigationModel.self) private var nav
     @Environment(LibraryStore.self) private var library
@@ -168,7 +170,7 @@ struct FileBrowserView: View {
     @State private var tableOrder: [KeyPathComparator<FileItem>] = []
 
     init(title: String, subtitle: String?, items: [FileItem], defaultSort: SortKey = .arrival, storageKey: String? = nil,
-         chips: AnyView? = nil, banner: AnyView? = nil, actions: AnyView? = nil) {
+         chips: AnyView? = nil, banner: AnyView? = nil, actions: AnyView? = nil, emptyTitle: String? = nil, emptyMessage: String? = nil) {
         self.title = title
         self.subtitle = subtitle
         self.items = items
@@ -176,6 +178,8 @@ struct FileBrowserView: View {
         self.chips = chips
         self.banner = banner
         self.actions = actions
+        self.emptyTitle = emptyTitle
+        self.emptyMessage = emptyMessage
         let key = "sort.list.\(storageKey ?? title)"
         _sortRaw = AppStorage(wrappedValue: "", key)
         _reversed = AppStorage(wrappedValue: false, key + ".reversed")
@@ -196,8 +200,8 @@ struct FileBrowserView: View {
                 ProgressView("Reading your files… \(Fmt.count(library.scanCount))").frame(maxWidth: .infinity, maxHeight: .infinity)
             } else if list.isEmpty {
                 EmptyStateView(symbol: filters.isActive ? "line.3.horizontal.decrease.circle" : "tray",
-                               title: filters.isActive ? "Nothing matches these filters" : "Nothing here",
-                               message: filters.isActive ? "Try a different date, size or kind." : "No files match.")
+                               title: filters.isActive ? "Nothing matches these filters" : (emptyTitle ?? "Nothing here"),
+                               message: filters.isActive ? "Try a different date, size or kind." : (emptyMessage ?? "No files match."))
             } else if nav.viewMode == .grid {
                 FileGrid(items: list)
             } else {
@@ -218,7 +222,7 @@ struct FileBrowserView: View {
                         Text(title).font(.system(size: 26, weight: .regular)).lineLimit(1).truncationMode(.tail)
                         if let actions { actions }
                     }
-                    Text([Fmt.plural(list.count, "item"), Fmt.bytes(total), subtitle].compactMap { $0 }.joined(separator: " · "))
+                    Text([Fmt.plural(list.count, "item"), list.isEmpty ? nil : Fmt.bytes(total), subtitle].compactMap { $0 }.joined(separator: " · "))
                         .font(.callout).foregroundStyle(.secondary).lineLimit(1).truncationMode(.tail)
                 }
                 .layoutPriority(1)
@@ -352,7 +356,7 @@ struct KindPill: View {
 
     private var label: String {
         if item.isDirectory { return "Folder" }
-        let kind = item.category == .apps ? "App" : (item.ext.isEmpty ? item.kind : item.ext.uppercased())
+        let kind = item.category == .apps ? "App" : item.isAppLibrary ? "Library" : (item.ext.isEmpty ? item.kind : item.ext.uppercased())
         if item.url.isAtticStub { return "In R2" }
         return "\(kind) · \(item.isCloudOnly ? "iCloud" : Fmt.bytes(item.spaceOnDisk))"
     }

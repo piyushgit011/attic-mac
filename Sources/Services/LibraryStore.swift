@@ -92,8 +92,27 @@ final class LibraryStore {
     }
     var screenshots: [FileItem] { items.filter(\.isScreenshot) }
     var screenshotCount: Int { items.reduce(0) { $0 + ($1.isScreenshot ? 1 : 0) } }
-    var largeFileCount: Int { items.reduce(0) { $0 + ($1.spaceOnDisk >= 100_000_000 && $1.category != .apps ? 1 : 0) } }
-    var largeFiles: [FileItem] { items.filter { $0.spaceOnDisk >= 100_000_000 && $0.category != .apps }.sorted { $0.spaceOnDisk > $1.spaceOnDisk } }
+    var largeFileCount: Int { items.reduce(0) { $0 + (LibraryStore.isLarge($1) ? 1 : 0) } }
+    var largeFiles: [FileItem] { items.filter(LibraryStore.isLarge).sorted { $0.spaceOnDisk > $1.spaceOnDisk } }
+    /// A file over 100 MB on this Mac that's yours to trash or offload. Apps and app libraries (Photos, Music, iMovie…)
+    /// are left out: their app manages them, and trashing or moving one can damage it.
+    nonisolated static func isLarge(_ it: FileItem) -> Bool {
+        it.spaceOnDisk >= 100_000_000 && it.category != .apps && !it.isAppLibrary
+    }
+    /// App libraries over 100 MB, which Large Files explains instead of listing.
+    var largeAppLibraries: [FileItem] {
+        items.filter { $0.isAppLibrary && $0.spaceOnDisk >= 100_000_000 }.sorted { $0.spaceOnDisk > $1.spaceOnDisk }
+    }
+    /// Files over 100 MB that are only in iCloud, so they use no space on this Mac.
+    var largeCloudOnlyCount: Int { items.reduce(0) { $0 + ($1.isCloudOnly && $1.size >= 100_000_000 ? 1 : 0) } }
+    /// What Large Files says when nothing big takes space here.
+    var largeFilesEmptyMessage: String {
+        let n = largeCloudOnlyCount
+        // A no-break space keeps the count with its words when the line wraps.
+        let cloud = n == 0 ? "" : n == 1 ? " 1\u{00A0}larger file is in iCloud only and uses no space here."
+            : " \(Fmt.count(n))\u{00A0}larger files are in iCloud only and use no space here."
+        return "No file over 100 MB is taking space on this Mac." + cloud
+    }
     func items(from source: String) -> [FileItem] { items.filter { $0.source == source } }
     var latestDownloads: [FileItem] {
         Array(items.filter(\.isInDownloads).sorted { $0.arrivalDate > $1.arrivalDate }.prefix(10))

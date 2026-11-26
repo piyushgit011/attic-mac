@@ -24,7 +24,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/piyushgit011/attic-mac/releases/latest/download/attic-film.mp4">
+  <a href="https://github.com/piyushgit011/attic-mac/releases/download/v1.3.0/attic-film.mp4">
     <img src="docs/images/video-poster.jpg" alt="Watch the Attic film" width="85%">
   </a>
   <br><sub>▶ Watch the film</sub>

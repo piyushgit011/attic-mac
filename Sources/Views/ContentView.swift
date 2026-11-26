@@ -176,7 +176,10 @@ struct DetailRouter: View {
             case .downloadedFrom: DownloadedFromView()
             case .source(let s): FileBrowserView(title: s, subtitle: "Downloaded from \(s)", items: library.items(from: s), defaultSort: .arrival).id("source-\(s)")
             case .category(let c): FileBrowserView(title: c.title, subtitle: nil, items: library.items(in: c), defaultSort: c == .apps ? .size : .arrival).id("cat-\(c.rawValue)")
-            case .largeFiles: FileBrowserView(title: "Large Files", subtitle: "Over 100 MB", items: library.largeFiles, defaultSort: .size).id("large")
+            case .largeFiles:
+                FileBrowserView(title: "Large Files", subtitle: "Over 100 MB", items: library.largeFiles, defaultSort: .size,
+                                banner: AnyView(AppLibraryNote()), emptyTitle: "Nothing big on this Mac",
+                                emptyMessage: library.largeFilesEmptyMessage).id("large")
             case .screenshots:
                 FileBrowserView(title: "Screenshots", subtitle: "Search finds the text inside them", items: library.screenshots, defaultSort: .arrival,
                                 banner: AnyView(ScreenshotHistoryBanner())).id("shots")

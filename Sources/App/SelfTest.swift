@@ -175,6 +175,19 @@ enum SelfTest {
             print("    " + crumbs.map(\.title).joined(separator: " ▸ "))
             check(crumbs.count == 4 && crumbs.last?.title == "2026", "path crumbs", &f)
             check(FileItem.isAppLibrary(path: "/Users/x/Pictures/Photos Library.photoslibrary") && !FileItem.isAppLibrary(path: "/x/a.key"), "app libraries are protected", &f)
+            let libURL = tmp.appendingPathComponent("Test Library.photoslibrary")
+            try fm.createDirectory(at: libURL, withIntermediateDirectories: true)
+            try Data(count: 16).write(to: libURL.appendingPathComponent("database"))
+            let movie = tmp.appendingPathComponent("Trip.mov")
+            try Data(count: 16).write(to: movie)
+            if var lib = FileItem.load(libURL), var mov = FileItem.load(movie) {
+                check(lib.name == "Test Library" && lib.isPackage && lib.isAppLibrary, "app library shows its Finder name (\(lib.name))", &f)
+                lib.size = 300_000_000; lib.allocatedSize = 300_000_000
+                mov.size = 300_000_000; mov.allocatedSize = 300_000_000
+                check(!LibraryStore.isLarge(lib) && LibraryStore.isLarge(mov), "Large Files leaves out app libraries", &f)
+            } else {
+                check(false, "load app library and movie", &f)
+            }
             try? fm.removeItem(at: tmp)
         } catch {
             check(false, "folder actions: \(error.localizedDescription)", &f)

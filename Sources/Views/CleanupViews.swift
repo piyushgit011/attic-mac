@@ -94,6 +94,53 @@ struct ScreenshotHistoryBanner: View {
     }
 }
 
+/// Large Files leaves out app libraries (Photos, Music, iMovie…): their app manages them, and trashing or moving one
+/// can damage it. This note says what was left out, how big it is, and how to shrink it from inside its app.
+struct AppLibraryNote: View {
+    @Environment(LibraryStore.self) private var library
+
+    var body: some View {
+        let libs = library.largeAppLibraries
+        if let lib = libs.first {
+            let total = libs.reduce(Int64(0)) { $0 + $1.spaceOnDisk }
+            let app = NSWorkspace.shared.urlForApplication(toOpen: lib.url)
+            HStack(alignment: .center, spacing: 12) {
+                Image(nsImage: NSWorkspace.shared.icon(forFile: lib.path))
+                    .resizable().interpolation(.high).frame(width: 36, height: 36)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(libs.count == 1 ? "\(lib.name) isn’t listed · \(Fmt.bytes(total))"
+                         : "\(lib.name) and \(libs.count - 1) more app \(libs.count == 2 ? "library" : "libraries") aren’t listed · \(Fmt.bytes(total))")
+                        .font(.headline)
+                    Text(AppLibraryNote.advice(for: lib.ext))
+                        .font(.callout).foregroundStyle(.secondary).lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                if let app {
+                    Button("Open \(app.deletingPathExtension().lastPathComponent)") {
+                        NSWorkspace.shared.openApplication(at: app, configuration: NSWorkspace.OpenConfiguration())
+                    }
+                }
+            }
+            .softCard(FileCategory.images.pastel)
+        }
+    }
+
+    static func advice(for ext: String) -> String {
+        switch ext {
+        case "photoslibrary", "photolibrary", "migratedphotolibrary", "aplibrary":
+            return "Photos manages it, and trashing or moving it can damage your library. To free space, turn on iCloud Photos with Optimize Mac Storage in Photos ▸ Settings ▸ iCloud."
+        case "musiclibrary", "tvlibrary":
+            return "Its app manages it, so Attic won’t trash or move it. To free space, remove downloaded songs and videos in the Music or TV app."
+        case "imovielibrary":
+            return "iMovie manages it, so Attic won’t trash or move it. To free space, delete render files in iMovie ▸ Settings."
+        case "fcpbundle":
+            return "Final Cut Pro manages it, so Attic won’t trash or move it. To free space, choose File ▸ Delete Generated Library Files in Final Cut Pro."
+        default:
+            return "Its app manages it, and trashing or moving it can damage it, so Attic leaves it alone."
+        }
+    }
+}
+
 struct CleanupOverview: View {
     @Environment(LibraryStore.self) private var library
     @Environment(NavigationModel.self) private var nav
