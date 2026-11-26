@@ -6,20 +6,91 @@ struct CleanupCardView: View {
 
     var body: some View {
         Button { nav.go(.cleanupCard(card.kind)) } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                HStack {
-                    Image(systemName: card.symbol).font(.title3).foregroundStyle(card.tint)
-                    Spacer()
-                    Text(Fmt.plural(card.items.count, "item")).font(.caption).foregroundStyle(.secondary)
-                }
-                Text(card.title).font(.headline)
-                Text(Fmt.bytes(card.bytes)).font(.system(size: 24, weight: .bold, design: .rounded))
-                Text(card.detail).font(.caption).foregroundStyle(.secondary).lineLimit(2).fixedSize(horizontal: false, vertical: true)
-            }
-            .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
-            .card()
+            SoftStatCard(symbol: card.symbol, tint: card.tint, title: card.title, value: Fmt.bytes(card.bytes),
+                         footnote: Fmt.plural(card.items.count, "item"), samples: card.items.prefix(3).map(\.url))
         }
         .buttonStyle(.plain)
+        .help(card.detail)
+    }
+}
+
+/// Duplicates as a Clean Up card, once a scan has found some.
+struct DuplicatesCardView: View {
+    @Environment(NavigationModel.self) private var nav
+
+    var body: some View {
+        let groups = AppState.shared.dupes.groups
+        let extra = groups.reduce(0) { $0 + $1.files.count - 1 }
+        Button { nav.go(.duplicates) } label: {
+            SoftStatCard(symbol: "square.on.square", tint: Color(red: 0.95, green: 0.38, blue: 0.40), title: "Duplicates",
+                         value: Fmt.bytes(groups.reduce(0) { $0 + $1.reclaimable }),
+                         footnote: "\(Fmt.count(extra)) extra \(extra == 1 ? "copy" : "copies")",
+                         samples: groups.prefix(3).compactMap { $0.files.first?.url })
+        }
+        .buttonStyle(.plain)
+        .help("Identical files, found by their contents")
+    }
+}
+
+/// Icon, little thumbnails, a label, a big number and "N items ›".
+struct SoftStatCard: View {
+    let symbol: String
+    let tint: Color
+    let title: String
+    let value: String
+    let footnote: String
+    var samples: [URL] = []
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 0) {
+            HStack(alignment: .top) {
+                IconBubble(symbol: symbol, tint: tint)
+                Spacer()
+                AvatarStack(urls: samples, size: 22)
+            }
+            Spacer(minLength: 16)
+            Text(title).font(.system(.callout, design: .monospaced)).foregroundStyle(.secondary).lineLimit(1)
+            HStack(alignment: .firstTextBaseline) {
+                Text(value).font(.system(size: 24, weight: .semibold)).monospacedDigit().lineLimit(1)
+                Spacer(minLength: 4)
+                HStack(spacing: 2) {
+                    Text(footnote)
+                    Image(systemName: "chevron.right").font(.system(size: 9, weight: .semibold))
+                }
+                .font(.caption).foregroundStyle(.secondary).lineLimit(1)
+            }
+            .padding(.top, 2)
+        }
+        .frame(maxWidth: .infinity, minHeight: 112, alignment: .topLeading)
+        .softCard(tint)
+        .contentShape(Rectangle())
+    }
+}
+
+/// Shown where screenshots should be when macOS sends them to the clipboard instead of saving them.
+struct ScreenshotHistoryBanner: View {
+    var compact = false
+    private var keeper: ScreenshotKeeper { ScreenshotKeeper.shared }
+
+    var body: some View {
+        if !keeper.enabled && ScreenshotKeeper.macOSCopiesToClipboard {
+            HStack(alignment: .center, spacing: 12) {
+                IconBubble(symbol: "camera.viewfinder", tint: FileCategory.images.pastel, size: 34)
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Your screenshots go to the clipboard, so none are saved").font(.headline)
+                    Text("Your Mac copies each screenshot instead of saving it, so there’s nothing here to find later. Attic can keep a copy of every new screenshot in Pictures ▸ Screenshots, where search reads the text in them. Only real screenshots are kept, not images you copy.")
+                        .font(.callout).foregroundStyle(.secondary).lineLimit(3)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                Button("Keep Screenshot History") { keeper.enabled = true }
+                    .buttonStyle(.borderedProminent)
+            }
+            .softCard(FileCategory.images.pastel)
+        } else if keeper.enabled && !compact {
+            Label("Screenshot history is on. Screenshots you take are saved to \(Fmt.path(ScreenshotKeeper.folder)) while Attic is open.",
+                  systemImage: "checkmark.circle.fill")
+                .font(.callout).foregroundStyle(.secondary)
+        }
     }
 }
 
@@ -51,11 +122,13 @@ struct CleanupOverview: View {
                 } else if library.cleanupCards.isEmpty {
                     EmptyStateView(symbol: "checkmark.seal", title: "Nothing to clean", message: "Your files look tidy.")
                 }
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 240), spacing: 14)], spacing: 14) {
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 230), spacing: 14)], spacing: 14) {
+                    duplicatesCard
                     ForEach(cards) { CleanupCardView(card: $0) }
                     deepCleanCard
-                    duplicatesCard
                 }
+                Label("Nothing is deleted without asking. Files go to the Trash, so you can always put them back.", systemImage: "checkmark.shield")
+                    .font(.caption).foregroundStyle(.secondary)
             }
             .padding(24)
         }
@@ -64,26 +137,24 @@ struct CleanupOverview: View {
 
     private var deepCleanCard: some View {
         Button { nav.go(.deepClean) } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: "hammer").font(.title3).foregroundStyle(.indigo)
-                Text("Deep Clean").font(.headline)
-                Text("node_modules, Xcode builds, npm/pip caches, app caches").font(.caption).foregroundStyle(.secondary)
-            }
-            .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
-            .card()
+            SoftStatCard(symbol: "hammer", tint: FileCategory.videos.pastel, title: "Deep Clean",
+                         value: AppState.shared.deepClean.scanned ? Fmt.bytes(AppState.shared.deepClean.items.reduce(0) { $0 + $1.bytes }) : "Scan",
+                         footnote: "node_modules, builds, caches")
         }.buttonStyle(.plain)
     }
 
     private var duplicatesCard: some View {
-        Button { nav.go(.duplicates) } label: {
-            VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: "square.on.square").font(.title3).foregroundStyle(.green)
-                Text("Duplicates").font(.headline)
-                Text("Identical files found by SHA-256 fingerprint").font(.caption).foregroundStyle(.secondary)
+        Group {
+            if AppState.shared.dupes.groups.isEmpty {
+                Button { nav.go(.duplicates) } label: {
+                    SoftStatCard(symbol: "square.on.square", tint: Color(red: 0.95, green: 0.38, blue: 0.40), title: "Duplicates",
+                                 value: AppState.shared.dupes.scanning ? "Scanning…" : (AppState.shared.dupes.scanned ? "None" : "Scan"),
+                                 footnote: "SHA-256 fingerprints")
+                }.buttonStyle(.plain)
+            } else {
+                DuplicatesCardView()
             }
-            .frame(maxWidth: .infinity, minHeight: 130, alignment: .topLeading)
-            .card()
-        }.buttonStyle(.plain)
+        }
     }
 }
 
@@ -170,54 +241,67 @@ struct DuplicatesView: View {
     var body: some View {
         @Bindable var m = AppState.shared.dupes
         let reclaim = m.groups.reduce(Int64(0)) { $0 + $1.reclaimable }
-        VStack(spacing: 0) {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("Duplicates").font(.title2.weight(.semibold))
-                    Text(m.scanned ? "\(Fmt.plural(m.groups.count, "set")) of identical files · \(Fmt.bytes(reclaim)) to get back"
-                         : "Finds identical files by their contents (SHA-256). APFS clones are counted correctly.")
-                        .foregroundStyle(.secondary)
+        let extra = m.groups.reduce(0) { $0 + $1.files.count - 1 }
+        ScrollView {
+            VStack(alignment: .leading, spacing: 18) {
+                HStack(alignment: .bottom) {
+                    SectionHeader(title: "Duplicates", subtitle: "Identical copies across your folders, found by their contents (SHA-256). APFS clones are counted correctly.")
+                    Spacer()
+                    SortMenu(key: $sort, reversed: $reversed)
                 }
-                Spacer()
-                if m.scanning {
-                    ProgressView(value: m.progress).frame(width: 160)
+                banner(reclaim: reclaim, extra: extra)
+                if m.groups.isEmpty {
+                    EmptyStateView(symbol: "square.on.square", title: m.scanned ? "No duplicates" : (m.scanning ? "Looking for duplicates…" : "Look for duplicates"),
+                                   message: m.scanned ? "Every file is one of a kind." : "Checks files over 100 KB across your scan locations.")
+                        .frame(minHeight: 240)
                 } else {
-                    Button(m.scanned ? "Scan Again" : "Find Duplicates") { scan() }.disabled(library.isScanning)
-                }
-                SortMenu(key: $sort, reversed: $reversed)
-                Button(role: .destructive) { trashAll() } label: { Label("Trash \(Fmt.bytes(reclaim)) of copies", systemImage: "trash") }
-                    .buttonStyle(.borderedProminent).disabled(m.groups.isEmpty || m.scanning)
-            }
-            .padding(20)
-            Divider()
-            if m.groups.isEmpty {
-                EmptyStateView(symbol: "square.on.square", title: m.scanned ? "No duplicates" : "Look for duplicates",
-                               message: m.scanned ? "Every file is one of a kind." : "Checks files over 100 KB across your scan locations.")
-            } else {
-                List {
-                    ForEach(orderedIDs(m.groups), id: \.self) { id in
-                        if let i = m.groups.firstIndex(where: { $0.id == id }) {
-                            DuplicateGroupRow(group: $m.groups[i])
+                    LazyVStack(spacing: 12) {
+                        ForEach(orderedIDs(m.groups), id: \.self) { id in
+                            if let i = m.groups.firstIndex(where: { $0.id == id }) {
+                                DuplicateGroupRow(group: $m.groups[i])
+                            }
                         }
                     }
                 }
             }
+            .padding(24)
         }
         .navigationTitle("Duplicates")
     }
 
-    private func scan() {
-        m.scanning = true
-        m.progress = 0
-        let items = library.items
-        Task.detached(priority: .userInitiated) {
-            let found = DuplicateFinder.find(in: items, progress: { p in Task { @MainActor in m.progress = p } }, isCancelled: { false })
-            await MainActor.run {
-                m.groups = found
-                m.scanning = false
-                m.scanned = true
+    private func banner(reclaim: Int64, extra: Int) -> some View {
+        HStack(spacing: 16) {
+            Image(systemName: "square.on.square").font(.system(size: 22, weight: .medium)).foregroundStyle(.white)
+                .frame(width: 54, height: 54).background(.white.opacity(0.12), in: Circle())
+            VStack(alignment: .leading, spacing: 4) {
+                Text(m.scanned ? "Free up \(Fmt.bytes(reclaim))" : (m.scanning ? "Looking for duplicates…" : "Find duplicate files"))
+                    .font(.system(size: 26, weight: .bold)).foregroundStyle(.white)
+                Text(m.scanned ? "\(Fmt.count(extra)) extra \(extra == 1 ? "copy" : "copies") in \(Fmt.plural(m.groups.count, "group"))"
+                     : "Attic keeps one copy of each and moves the rest to the Trash. You pick which one stays.")
+                    .foregroundStyle(.white.opacity(0.7))
+                if m.scanning { ProgressView(value: m.progress).tint(.white).frame(width: 220) }
+            }
+            Spacer()
+            VStack(alignment: .trailing, spacing: 8) {
+                Button { trashAll() } label: {
+                    Label("Trash All Extras", systemImage: "trash").font(.callout.weight(.semibold)).foregroundStyle(.red)
+                        .padding(.horizontal, 14).padding(.vertical, 7).background(.white, in: Capsule())
+                }
+                .buttonStyle(.plain).disabled(m.groups.isEmpty || m.scanning).opacity(m.groups.isEmpty ? 0.5 : 1)
+                Button { scan() } label: {
+                    Label(m.scanned ? "Scan Again" : "Find Duplicates", systemImage: "arrow.clockwise").font(.callout).foregroundStyle(.white)
+                        .padding(.horizontal, 12).padding(.vertical, 6).background(.white.opacity(0.14), in: Capsule())
+                }
+                .buttonStyle(.plain).disabled(library.isScanning || m.scanning)
             }
         }
+        .padding(22)
+        .background(LinearGradient(colors: [Color(white: 0.16), Color(white: 0.09)], startPoint: .topLeading, endPoint: .bottomTrailing),
+                    in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func scan() {
+        m.scan(library.items)
     }
 
     private func orderedIDs(_ groups: [DuplicateGroup]) -> [UUID] {
@@ -242,34 +326,54 @@ struct DuplicatesView: View {
 
 struct DuplicateGroupRow: View {
     @Binding var group: DuplicateGroup
+    @Environment(LibraryStore.self) private var library
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            HStack {
-                Text(group.files.first?.name ?? "").font(.headline).lineLimit(1)
-                Text("\(group.files.count) copies · \(Fmt.bytes(group.size)) each").foregroundStyle(.secondary)
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(group.files.first?.name ?? "").font(.system(.callout, design: .monospaced).weight(.medium)).lineLimit(1)
+                    Text("\(group.files.count) identical copies · \(group.reclaimable > 0 ? "\(Fmt.bytes(group.reclaimable)) can be freed" : "APFS clones, freeing them saves nothing")")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
                 Spacer()
-                Text(group.reclaimable > 0 ? "Frees \(Fmt.bytes(group.reclaimable))" : "Clones, frees nothing")
-                    .font(.callout.weight(.medium)).foregroundStyle(group.reclaimable > 0 ? .green : .secondary)
+                Button {
+                    let victims = group.files.filter { $0.url != group.keep }
+                    Task {
+                        await library.trash(victims)
+                        AppState.shared.dupes.groups.removeAll { $0.id == group.id }
+                    }
+                } label: { Label("Keep 1, Trash \(group.files.count - 1)", systemImage: "trash") }
+                    .controlSize(.small)
             }
             ScrollView(.horizontal, showsIndicators: false) {
                 HStack(spacing: 10) {
                     ForEach(group.files) { f in
                         let keep = f.url == group.keep
                         VStack(alignment: .leading, spacing: 4) {
-                            ThumbView(url: f.url, side: 90).frame(width: 120, height: 80).clipShape(RoundedRectangle(cornerRadius: 8))
-                            Text(Fmt.path(f.url.deletingLastPathComponent())).font(.caption).lineLimit(1).truncationMode(.head).frame(width: 120, alignment: .leading)
-                            Text(keep ? "Keep" : "To Trash").font(.caption.weight(.semibold)).foregroundStyle(keep ? .green : .secondary)
+                            ThumbView(url: f.url, side: 120, plain: true, fill: true)
+                                .frame(width: 150, height: 96).clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(alignment: .topLeading) {
+                                    Text(keep ? "Keep" : "Trash").font(.caption2.weight(.bold)).foregroundStyle(.white)
+                                        .padding(.horizontal, 7).padding(.vertical, 2)
+                                        .background(keep ? Palette.good : Color.red, in: Capsule()).padding(6)
+                                }
+                            Text(Fmt.path(f.url.deletingLastPathComponent())).font(.caption).lineLimit(1).truncationMode(.head)
+                            Text("\(Fmt.bytes(f.spaceOnDisk)) · \(Fmt.ago(f.arrivalDate))").font(.caption2).foregroundStyle(.secondary)
                         }
-                        .padding(6)
-                        .background(keep ? Color.green.opacity(0.12) : .clear, in: RoundedRectangle(cornerRadius: 10))
-                        .overlay(RoundedRectangle(cornerRadius: 10).strokeBorder(keep ? Color.green : .clear, lineWidth: 1.5))
+                        .frame(width: 150)
+                        .padding(8)
+                        .background(keep ? Palette.good.opacity(0.08) : Color.primary.opacity(0.03), in: RoundedRectangle(cornerRadius: 12))
+                        .overlay(RoundedRectangle(cornerRadius: 12).strokeBorder(keep ? Palette.good : Color.primary.opacity(0.08), lineWidth: keep ? 1.5 : 1))
                         .onTapGesture { group.keep = f.url }
-                        .help("Click to keep this copy instead")
+                        .contextMenu { FileContextMenu(targets: [f], all: group.files) }
+                        .help(keep ? "This copy stays" : "Click to keep this copy instead")
                     }
                 }
             }
         }
-        .padding(.vertical, 6)
+        .padding(14)
+        .background(Color(nsColor: .controlBackgroundColor), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 14, style: .continuous).strokeBorder(Color.primary.opacity(0.08)))
     }
 }

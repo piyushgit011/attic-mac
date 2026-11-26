@@ -1,6 +1,7 @@
 import SwiftUI
 import AppKit
 import Carbon.HIToolbox
+import ServiceManagement
 
 // MARK: - Settings
 
@@ -13,11 +14,49 @@ struct SettingsView: View {
     @AppStorage(Prefs.afterUpload) private var after = AfterUpload.trash.rawValue
     @AppStorage(Prefs.leaveStubs) private var stubs = true
     @AppStorage(Prefs.allowOtherBucketWrites) private var otherBuckets = false
+    @AppStorage(Prefs.look) private var look = Look.playful.rawValue
+    @AppStorage(Prefs.appearance) private var appearance = "system"
     @State private var roots = Prefs.scanRootPaths
+    @State private var openAtLogin = SMAppService.mainApp.status == .enabled
+    private var keeper: ScreenshotKeeper { ScreenshotKeeper.shared }
 
     var body: some View {
         TabView {
             Form {
+                Section("Look") {
+                    Picker("Look", selection: $look) {
+                        ForEach(Look.allCases) { Label($0.title, systemImage: $0.symbol).tag($0.rawValue) }
+                    }
+                    .pickerStyle(.segmented)
+                    Text("Playful uses soft colour. Minimal is black, white and grey. Switch any time with ⌃⌘T or from the top bar.")
+                        .font(.caption).foregroundStyle(.secondary)
+                    Picker("Appearance", selection: $appearance) {
+                        Text("Same as my Mac").tag("system")
+                        Text("Light").tag("light")
+                        Text("Dark").tag("dark")
+                    }
+                    Toggle("Open Attic when you log in", isOn: Binding(get: { openAtLogin }, set: { on in
+                        do {
+                            if on { try SMAppService.mainApp.register() } else { try SMAppService.mainApp.unregister() }
+                        } catch {
+                            library.show(toast: "Couldn’t change login items: \(error.localizedDescription)")
+                        }
+                        openAtLogin = SMAppService.mainApp.status == .enabled
+                    }))
+                }
+                Section("Screenshots") {
+                    Toggle("Keep a history of screenshots", isOn: Binding(get: { keeper.enabled }, set: { keeper.enabled = $0 }))
+                    LabeledContent("Saved to") {
+                        HStack {
+                            Text(Fmt.path(ScreenshotKeeper.folder)).foregroundStyle(.secondary)
+                            Button("Choose…") { chooseScreenshotFolder() }.controlSize(.small)
+                        }
+                    }
+                    Text(ScreenshotKeeper.macOSCopiesToClipboard
+                         ? "Your Mac copies screenshots to the clipboard instead of saving them. With this on, Attic saves a copy of each new one (only real screenshots, not other images you copy) while it’s open, so you can find them and search their text."
+                         : "Your Mac already saves screenshots as files. This also keeps the ones you copy to the clipboard with ⌃⇧⌘4.")
+                        .font(.caption).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
                 Section("Scan locations") {
                     ForEach(roots, id: \.self) { r in
                         HStack {
@@ -74,12 +113,27 @@ struct SettingsView: View {
             .formStyle(.grouped)
             .tabItem { Label("Cloud", systemImage: "cloud") }
         }
-        .frame(width: 560, height: 460)
+        .frame(width: 580, height: 620)
     }
 
     private func save() {
         Prefs.scanRootPaths = roots
         library.scan()
+    }
+
+    private func chooseScreenshotFolder() {
+        let panel = NSOpenPanel()
+        panel.canChooseDirectories = true
+        panel.canChooseFiles = false
+        panel.canCreateDirectories = true
+        panel.directoryURL = ScreenshotKeeper.folder.deletingLastPathComponent()
+        if panel.runModal() == .OK, let url = panel.url {
+            UserDefaults.standard.set(url.path, forKey: Prefs.screenshotFolder)
+            if !roots.contains(where: { url.path.hasPrefix($0 + "/") || url.path == $0 }) {
+                roots.append(url.path)
+                save()
+            }
+        }
     }
 
     private func addFolder() {

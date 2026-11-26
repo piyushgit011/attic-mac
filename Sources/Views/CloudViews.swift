@@ -451,6 +451,22 @@ struct OffloadedView: View {
                     .buttonStyle(.borderedProminent).disabled(selection.isEmpty || !cloud.isConnected)
             }
             .padding(20)
+            ForEach(cloud.records.filter { $0.isICloud && FileItem.isAppLibrary(path: $0.originalPath) }) { r in
+                HStack(alignment: .center, spacing: 12) {
+                    Image(systemName: "exclamationmark.triangle.fill").font(.title2).foregroundStyle(.orange)
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("\(r.name) is in iCloud Drive").font(.headline)
+                        Text("App libraries like this can get damaged in iCloud Drive, so Attic won’t remove the copy on this Mac. Move it back to \(Fmt.path(URL(fileURLWithPath: r.originalPath).deletingLastPathComponent())). To save space with Photos, use iCloud Photos with Optimize Mac Storage instead.")
+                            .font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer()
+                    Button("Move Back") { Task { await cloud.restoreICloud(r, open: false) } }
+                        .buttonStyle(.borderedProminent)
+                }
+                .padding(14)
+                .background(Color.orange.opacity(0.1), in: RoundedRectangle(cornerRadius: 12))
+                .padding(.horizontal, 20).padding(.bottom, 12)
+            }
             Divider()
             if cloud.records.isEmpty {
                 EmptyStateView(symbol: "icloud.and.arrow.up", title: "Nothing offloaded yet",

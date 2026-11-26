@@ -597,8 +597,11 @@ final class CloudStore {
     /// Offload to iCloud Drive: files already in iCloud get their download removed; other files move into
     /// iCloud Drive ▸ Attic with a link left behind, and the local copy goes once iCloud has uploaded it.
     func offloadToICloud(_ items: [FileItem]) async {
-        let files = items.filter { !$0.isCloudOnly && !$0.url.isAtticStub && $0.category != .apps }
+        let files = items.filter { !$0.isCloudOnly && !$0.url.isAtticStub && $0.category != .apps && !$0.isAppLibrary }
         var progress = OffloadProgress(total: files.count, done: 0, bytesTotal: files.reduce(0) { $0 + $1.size }, bytesDone: 0, current: "")
+        for lib in items where lib.isAppLibrary {
+            progress.failures.append("Kept \(lib.name) on this Mac. App libraries can be damaged in iCloud Drive. For Photos, turn on iCloud Photos with Optimize Mac Storage instead.")
+        }
         offloadProgress = progress
         var moved = Set<URL>()
         let fm = FileManager.default
@@ -657,6 +660,10 @@ final class CloudStore {
         var waiting = 0
         var lastError: String?
         for i in records.indices where records[i].isICloud && records[i].pendingEvict == true {
+            // Never remove the local copy of an app library (an older version could queue one).
+            if FileItem.isAppLibrary(path: records[i].originalPath) {
+                records[i].pendingEvict = false; changed = true; continue
+            }
             let url = URL(fileURLWithPath: records[i].key)
             let keys: Set<URLResourceKey> = [.ubiquitousItemIsUploadedKey, .ubiquitousItemUploadingErrorKey, .ubiquitousItemDownloadingStatusKey]
             guard let rv = try? url.resourceValues(forKeys: keys) else { continue }
@@ -692,7 +699,12 @@ final class CloudStore {
                 let original = URL(fileURLWithPath: record.originalPath)
                 if (try? original.resourceValues(forKeys: [.isSymbolicLinkKey]))?.isSymbolicLink == true { try fm.removeItem(at: original) }
                 let dest = AppPaths.uniqueURL(for: original)
-                try fm.setUbiquitous(false, itemAt: icloudURL, destinationURL: dest)
+                do {
+                    try fm.setUbiquitous(false, itemAt: icloudURL, destinationURL: dest)
+                } catch {
+                    // Packages (like a .photoslibrary) can refuse setUbiquitous; a plain move out of iCloud Drive works.
+                    try fm.moveItem(at: icloudURL, to: dest)
+                }
                 if open { NSWorkspace.shared.open(dest) } else { NSWorkspace.shared.activateFileViewerSelecting([dest]) }
             } else if open {
                 NSWorkspace.shared.open(icloudURL)
@@ -711,8 +723,14 @@ final class CloudStore {
     private func loadManifest() {
         let dec = JSONDecoder()
         dec.dateDecodingStrategy = .iso8601
-        guard let data = try? Data(contentsOf: manifestURL), let list = try? dec.decode([OffloadRecord].self, from: data) else { return }
+        guard let data = try? Data(contentsOf: manifestURL), var list = try? dec.decode([OffloadRecord].self, from: data) else { return }
+        var fixed = false
+        for i in list.indices where list[i].pendingEvict == true && FileItem.isAppLibrary(path: list[i].originalPath) {
+            list[i].pendingEvict = false
+            fixed = true
+        }
         records = list
+        if fixed { saveManifest() }
     }
 
     private func saveManifest() {

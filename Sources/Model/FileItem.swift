@@ -114,6 +114,8 @@ struct FileItem: Identifiable, Hashable {
     var isICloudUploaded: Bool = false
     let isPackage: Bool
     var bundleID: String? = nil
+    /// A plain folder, shown when browsing a location like Finder. Never part of the library index.
+    var isDirectory: Bool = false
 
     var id: URL { url }
     var path: String { url.path }
@@ -124,6 +126,12 @@ struct FileItem: Identifiable, Hashable {
     /// Best guess at the last time this file was used.
     var lastUsed: Date { max(accessed ?? modified, modified) }
     var isInstaller: Bool { TypeInfo.installerExts.contains(ext) }
+    /// A library an app keeps open (Photos, Music, iMovie, Final Cut…). Moving it to the cloud can damage it,
+    /// so Attic never offloads or evicts one.
+    var isAppLibrary: Bool { FileItem.appLibraryExts.contains(ext) }
+    static let appLibraryExts: Set<String> = ["photoslibrary", "photolibrary", "migratedphotolibrary", "aplibrary", "musiclibrary",
+                                              "tvlibrary", "imovielibrary", "fcpbundle", "lrlibrary", "lrdata", "theater", "band"]
+    static func isAppLibrary(path: String) -> Bool { appLibraryExts.contains((path as NSString).pathExtension.lowercased()) }
     var isInDownloads: Bool { path.hasPrefix(DemoData.downloadsPath + "/") }
     /// Bytes this file actually occupies on this Mac. iCloud-only (dataless) files use none.
     var spaceOnDisk: Int64 { isCloudOnly ? 0 : (allocatedSize > 0 ? allocatedSize : size) }
@@ -131,6 +139,26 @@ struct FileItem: Identifiable, Hashable {
 
     static func == (a: FileItem, b: FileItem) -> Bool { a.url == b.url }
     func hash(into h: inout Hasher) { h.combine(url) }
+
+    /// A folder entry for the folder browser.
+    static func folder(_ url: URL, rv: URLResourceValues?) -> FileItem {
+        let name = FileManager.default.displayName(atPath: url.path)
+        return FileItem(url: url, name: name, lowerName: name.lowercased(), ext: "", size: 0, allocatedSize: 0,
+                        created: rv?.creationDate ?? .distantPast, modified: rv?.contentModificationDate ?? .distantPast,
+                        added: rv?.addedToDirectoryDate, accessed: nil, category: .other, kind: "Folder",
+                        whereFroms: [], source: nil, isScreenshot: false, isCloudOnly: false, isPackage: false, isDirectory: true)
+    }
+
+    /// Reads one file or folder from disk (for files outside the library index, like ones in ~/Developer).
+    static func load(_ url: URL) -> FileItem? {
+        guard let rv = try? url.resourceValues(forKeys: Scanner.keySet) else { return nil }
+        if rv.isDirectory == true && rv.isPackage != true { return folder(url, rv: rv) }
+        var item = Scanner.makeItem(url: url, rv: rv, isPackage: rv.isPackage == true)
+        if rv.isPackage == true, item != nil, let cached = FolderSizeCache.shared.bytes(for: url.path) {
+            item?.size = cached; item?.allocatedSize = cached
+        }
+        return item
+    }
 }
 
 // MARK: - Where a download came from

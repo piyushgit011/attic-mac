@@ -60,6 +60,26 @@ final class OCRIndex {
         }
     }
 
+    /// Reads a few new images (a fresh screenshot, a moved file) without interrupting a big index run.
+    func indexNow(_ items: [FileItem]) {
+        guard UserDefaults.standard.object(forKey: Prefs.ocrEnabled) as? Bool ?? true else { return }
+        let work = items.filter { $0.category == .images && !$0.isCloudOnly && $0.size < 25_000_000 }.prefix(50)
+        guard !work.isEmpty else { return }
+        let list = Array(work)
+        Task.detached(priority: .utility) { [weak self] in
+            var out: [(String, Double, String)] = []
+            for item in list {
+                let text = OCRIndex.recognize(item.url, fast: false) ?? ""
+                out.append((item.path, item.modified.timeIntervalSince1970, OCRIndex.searchable(text)))
+            }
+            await MainActor.run {
+                guard let self else { return }
+                for (p, m, t) in out { self.texts[p] = t; self.mtimes[p] = m }
+                if !self.isIndexing { self.save() }
+            }
+        }
+    }
+
     /// Recognizes text right now (for Copy Text), keeping line breaks.
     func recognizeNow(_ urls: [URL]) async -> String {
         await Task.detached(priority: .userInitiated) {

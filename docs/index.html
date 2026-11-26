@@ -3,112 +3,149 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Attic: free up your Mac, keep everything</title>
-<meta name="description" content="A free, open-source Mac app that finds what's filling your disk, cleans it up safely, and moves big files to Cloudflare R2 or iCloud Drive. On-device AI, nothing leaves your Mac.">
-<meta property="og:title" content="Attic: free up your Mac, keep everything">
-<meta property="og:description" content="Free and open source. Clean Up, Duplicates, Deep Clean, Memory & Swap, and offload to Cloudflare R2 or iCloud Drive, with AI that stays on your Mac.">
+<title>Attic: the Finder alternative that frees up your Mac</title>
+<meta name="description" content="Attic is a free, open-source Finder alternative for Mac. Every folder with big, clear thumbnails, plain-English search, Clean Up and Duplicates, and offload to Cloudflare R2 or iCloud Drive. AI that stays on your Mac.">
+<meta property="og:title" content="Attic: the Finder alternative that frees up your Mac">
+<meta property="og:description" content="Free and open source. Browse every folder beautifully, search in plain English, clear out what you don't need, and move big files to R2 or iCloud Drive.">
 <meta property="og:image" content="https://piyushgit011.github.io/attic-mac/images/banner.png">
 <meta name="twitter:card" content="summary_large_image">
+<meta name="color-scheme" content="light dark">
 <link rel="icon" href="images/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Plus+Jakarta+Sans:wght@600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #0d090c; --panel: rgba(255,255,255,0.045); --line: rgba(255,255,255,0.10);
-    --ink: #fff; --dim: rgba(255,255,255,0.66); --faint: rgba(255,255,255,0.45);
-    --amber: #ffc04d; --orange: #ff7e45; --pink: #ee4472;
-    --grad: linear-gradient(120deg, var(--amber), var(--orange) 45%, var(--pink));
+    --bg: #fbfbfd; --bg2: #f5f5f7; --panel: #ffffff; --line: rgba(0,0,0,0.08);
+    --ink: #1d1d1f; --dim: #6e6e73; --faint: #86868b;
+    --amber: #ffb14f; --orange: #ff7a45; --pink: #ee4472; --blue: #2f7cf6; --green: #1fa463;
+    --grad: linear-gradient(100deg, #ff9f43, #ff6b4a 45%, #e8396b);
+    --shadow: 0 30px 80px rgba(30, 20, 40, 0.14);
+    --kbd: #ffffff;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #000000; --bg2: #0d0d0f; --panel: #151517; --line: rgba(255,255,255,0.10);
+      --ink: #f5f5f7; --dim: #a1a1a6; --faint: #86868b; --shadow: 0 30px 80px rgba(0,0,0,0.6); --kbd: #1d1d1f;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #000000; --bg2: #0d0d0f; --panel: #151517; --line: rgba(255,255,255,0.10);
+    --ink: #f5f5f7; --dim: #a1a1a6; --faint: #86868b; --shadow: 0 30px 80px rgba(0,0,0,0.6); --kbd: #1d1d1f;
   }
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 17px/1.6 Inter, system-ui, sans-serif; -webkit-font-smoothing: antialiased; overflow-x: hidden; }
-  body::before { content: ""; position: fixed; inset: -20%; z-index: -1; pointer-events: none;
-    background: radial-gradient(40% 35% at 15% 10%, rgba(255,192,77,0.22), transparent 70%),
-                radial-gradient(45% 40% at 90% 25%, rgba(238,68,114,0.20), transparent 70%),
-                radial-gradient(40% 40% at 70% 95%, rgba(255,126,69,0.14), transparent 70%); }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font: 17px/1.55 -apple-system, BlinkMacSystemFont, "SF Pro Text", Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased; overflow-x: hidden; }
   a { color: inherit; }
-  .wrap { max-width: 1160px; margin: 0 auto; padding: 0 24px; }
-  h1, h2, h3 { font-family: "Plus Jakarta Sans", Inter, sans-serif; letter-spacing: -0.03em; margin: 0; }
-  h1 { font-size: clamp(44px, 7vw, 84px); line-height: 1.02; font-weight: 800; }
-  h2 { font-size: clamp(32px, 4.4vw, 52px); line-height: 1.08; font-weight: 800; }
-  h3 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; }
+  img, video { max-width: 100%; }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 0 22px; }
+  h1, h2, h3 { font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", Inter, system-ui, sans-serif; margin: 0; letter-spacing: -0.025em; }
+  h1 { font-size: clamp(42px, 7.2vw, 80px); line-height: 1.04; font-weight: 700; }
+  h2 { font-size: clamp(32px, 5vw, 56px); line-height: 1.07; font-weight: 700; }
+  h3 { font-size: 21px; font-weight: 600; letter-spacing: -0.015em; }
   .grad { background: var(--grad); -webkit-background-clip: text; background-clip: text; color: transparent; }
-  .lead { color: var(--dim); font-size: clamp(18px, 2vw, 21px); max-width: 640px; }
-  .kicker { display: inline-flex; align-items: center; gap: 8px; padding: 6px 14px; border-radius: 999px; font-weight: 600; font-size: 14px;
-    color: #ffb48a; background: rgba(255,126,69,0.12); border: 1px solid rgba(255,160,110,0.4); }
+  .lead { color: var(--dim); font-size: clamp(19px, 2.2vw, 23px); line-height: 1.45; max-width: 700px; }
+  .eyebrow { font-weight: 600; color: var(--orange); font-size: 17px; letter-spacing: -0.01em; }
 
-  nav { position: sticky; top: 0; z-index: 10; backdrop-filter: blur(16px); background: rgba(13,9,12,0.7); border-bottom: 1px solid var(--line); }
-  nav .wrap { display: flex; align-items: center; gap: 24px; height: 64px; }
-  .brand { display: flex; align-items: center; gap: 10px; font: 800 22px "Plus Jakarta Sans", sans-serif; text-decoration: none; }
-  .brand img { width: 32px; height: 32px; }
-  nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 15px; color: var(--dim); }
+  nav { position: sticky; top: 0; z-index: 20; backdrop-filter: saturate(180%) blur(20px); -webkit-backdrop-filter: saturate(180%) blur(20px);
+    background: color-mix(in srgb, var(--bg) 78%, transparent); border-bottom: 1px solid var(--line); }
+  nav .wrap { display: flex; align-items: center; gap: 22px; height: 52px; }
+  .brand { display: flex; align-items: center; gap: 9px; font-weight: 600; font-size: 18px; text-decoration: none; }
+  .brand img { width: 26px; height: 26px; }
+  nav .links { display: flex; gap: 22px; margin-left: auto; font-size: 13px; color: var(--dim); }
   nav .links a { text-decoration: none; }
   nav .links a:hover { color: var(--ink); }
+  .navbtn { padding: 5px 13px; border-radius: 999px; background: var(--ink); color: var(--bg); font-size: 13px; font-weight: 600; text-decoration: none; }
 
-  .btn { display: inline-flex; align-items: center; gap: 10px; padding: 14px 24px; border-radius: 14px; font-weight: 600; text-decoration: none; font-size: 16px; transition: transform .15s; }
+  .btn { display: inline-flex; align-items: center; gap: 9px; padding: 13px 24px; border-radius: 999px; font-weight: 600; text-decoration: none; font-size: 17px; transition: transform .15s, opacity .15s; }
   .btn:hover { transform: translateY(-1px); }
-  .btn.primary { background: var(--grad); color: #1a0d0a; box-shadow: 0 12px 40px rgba(238,68,114,0.35); }
-  .btn.ghost { background: var(--panel); border: 1px solid var(--line); }
-  .btn svg { width: 20px; height: 20px; }
+  .btn.primary { background: var(--ink); color: var(--bg); }
+  .btn.ghost { color: var(--blue); padding-left: 6px; padding-right: 6px; }
+  .btn.ghost:hover { text-decoration: underline; }
+  .btn svg { width: 19px; height: 19px; }
 
-  .hero { padding: 84px 0 40px; text-align: center; }
-  .hero .icon { width: 112px; height: 112px; filter: drop-shadow(0 20px 40px rgba(238,68,114,0.4)); }
-  .hero h1 { margin-top: 18px; }
+  .hero { padding: 76px 0 24px; text-align: center; }
+  .hero .icon { width: 128px; height: 128px; filter: drop-shadow(0 18px 36px rgba(232,57,107,0.28)); }
+  .hero h1 { margin-top: 20px; }
   .hero .lead { margin: 22px auto 0; }
-  .ctas { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; margin-top: 34px; }
-  .meta { margin-top: 18px; color: var(--faint); font-size: 14px; }
-  .video { margin: 56px auto 0; max-width: 1040px; border-radius: 22px; overflow: hidden; border: 1px solid var(--line);
-    box-shadow: 0 50px 120px rgba(0,0,0,0.55); background: #000; aspect-ratio: 16 / 9; }
-  .video video { width: 100%; height: 100%; display: block; }
+  .ctas { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 32px; align-items: center; }
+  .meta { margin-top: 16px; color: var(--faint); font-size: 14px; }
+  .film { margin: 54px auto 0; max-width: 1080px; border-radius: 22px; overflow: hidden; box-shadow: var(--shadow); background: #000; aspect-ratio: 16 / 9; }
+  .film video { width: 100%; height: 100%; display: block; }
 
-  section { padding: 96px 0 0; }
-  .section-head { max-width: 720px; margin-bottom: 40px; }
-  .section-head .lead { margin-top: 16px; }
+  section { padding: 120px 0 0; }
+  .center { text-align: center; }
+  .section-head { max-width: 760px; margin: 0 auto 44px; text-align: center; }
+  .section-head .lead { margin: 18px auto 0; }
+  .section-head .eyebrow { display: block; margin-bottom: 10px; }
 
-  .feature { display: grid; grid-template-columns: 1fr 1.35fr; gap: 48px; align-items: center; margin-bottom: 88px; }
-  .feature.flip { grid-template-columns: 1.35fr 1fr; }
-  .feature.flip .copy { order: 2; }
-  .feature .copy p { color: var(--dim); margin: 14px 0 0; }
-  .feature ul { color: var(--dim); padding-left: 20px; margin: 14px 0 0; }
-  .feature li { margin: 6px 0; }
-  .shot { border-radius: 16px; overflow: hidden; border: 1px solid var(--line); box-shadow: 0 30px 80px rgba(0,0,0,0.5); background: #1d1d1f; }
+  .shot { border-radius: 18px; overflow: hidden; box-shadow: var(--shadow); background: var(--bg2); }
   .shot img { width: 100%; display: block; }
+  .points { display: grid; grid-template-columns: repeat(4, 1fr); gap: 26px; margin-top: 44px; }
+  .points div h3 { font-size: 17px; }
+  .points div p { color: var(--dim); margin: 6px 0 0; font-size: 15px; }
 
-  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
-  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 18px; padding: 24px; }
-  .card p { color: var(--dim); margin: 8px 0 0; font-size: 16px; }
-  .card .ico { font-size: 26px; }
+  .tile { background: var(--bg2); border-radius: 28px; padding: 56px 56px 0; overflow: hidden; }
+  .tile .shot { border-radius: 16px 16px 0 0; box-shadow: 0 -2px 30px rgba(0,0,0,0.06); }
+  .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
+  .duo .tile { padding: 40px 40px 0; }
+  .duo .tile p { color: var(--dim); margin: 10px 0 26px; }
 
-  table { width: 100%; border-collapse: collapse; background: var(--panel); border: 1px solid var(--line); border-radius: 18px; overflow: hidden; font-size: 16px; }
-  th, td { text-align: left; padding: 16px 20px; border-bottom: 1px solid var(--line); vertical-align: top; }
-  th { color: var(--ink); font-weight: 600; }
+  .switch { display: inline-flex; gap: 4px; padding: 4px; border-radius: 999px; background: var(--bg2); border: 1px solid var(--line); margin-bottom: 28px; }
+  .switch button { border: 0; background: transparent; color: var(--dim); font: 600 15px -apple-system, Inter, sans-serif; padding: 9px 20px; border-radius: 999px; cursor: pointer; }
+  .switch button[aria-pressed="true"] { background: var(--panel); color: var(--ink); box-shadow: 0 2px 10px rgba(0,0,0,0.1); }
+  .looks .shot img { transition: opacity .35s; }
+
+  .cards3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 26px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 26px; }
+  .card .ico { font-size: 28px; }
+  .card h3 { margin-top: 10px; }
+  .card p { color: var(--dim); margin: 8px 0 0; font-size: 15.5px; }
+
+  table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  .tablewrap { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 20px; }
+  th, td { text-align: left; padding: 16px 22px; border-bottom: 1px solid var(--line); vertical-align: top; }
+  th { font-weight: 600; }
   td { color: var(--dim); }
+  td:first-child { color: var(--ink); font-weight: 500; }
   tr:last-child td { border-bottom: 0; }
-  .tablewrap { overflow-x: auto; }
+  .yes { color: var(--ink); }
 
-  .ai { background: linear-gradient(135deg, rgba(255,192,77,0.10), rgba(238,68,114,0.10)); border: 1px solid rgba(255,160,110,0.25);
-    border-radius: 28px; padding: 56px; display: grid; grid-template-columns: 1fr 1.2fr; gap: 48px; align-items: center; }
-  .ai p { color: var(--dim); }
-  .pill-row { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 22px; }
-  .pill { padding: 8px 16px; border-radius: 999px; background: rgba(255,255,255,0.07); border: 1px solid var(--line); font-weight: 600; font-size: 14px; }
+  .ai { border-radius: 28px; padding: 64px; display: grid; grid-template-columns: 1fr 1.15fr; gap: 52px; align-items: center;
+    background: radial-gradient(60% 80% at 0% 0%, rgba(255,159,67,0.16), transparent 70%), radial-gradient(60% 80% at 100% 100%, rgba(232,57,107,0.14), transparent 70%), var(--bg2); }
+  .ai p, .ai li { color: var(--dim); }
+  .ai b { color: var(--ink); }
+  .pills { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 22px; }
+  .pill { padding: 7px 14px; border-radius: 999px; background: var(--panel); border: 1px solid var(--line); font-weight: 600; font-size: 13.5px; }
 
-  pre { background: #0a0708; border: 1px solid var(--line); border-radius: 14px; padding: 20px; overflow-x: auto; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; color: #f1d7c8; }
-  details { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; padding: 18px 22px; margin-bottom: 12px; }
+  .keys { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  .key { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 18px; background: var(--panel); border: 1px solid var(--line); border-radius: 14px; font-size: 15px; }
+  kbd { font: 600 13px -apple-system, Inter, sans-serif; padding: 3px 8px; border-radius: 7px; background: var(--kbd); border: 1px solid var(--line); box-shadow: 0 1px 0 var(--line); white-space: nowrap; }
+
+  pre { background: var(--bg2); border: 1px solid var(--line); border-radius: 16px; padding: 20px; overflow-x: auto; font: 14px/1.6 ui-monospace, SFMono-Regular, Menlo, monospace; }
+  details { background: var(--panel); border: 1px solid var(--line); border-radius: 16px; padding: 18px 22px; margin-bottom: 12px; }
   summary { cursor: pointer; font-weight: 600; }
   details p { color: var(--dim); margin: 12px 0 0; }
 
-  footer { margin-top: 110px; padding: 40px 0 60px; border-top: 1px solid var(--line); color: var(--faint); font-size: 14px; }
+  .final { text-align: center; padding: 130px 0 40px; }
+  .final img { width: 96px; height: 96px; }
+  footer { margin-top: 80px; padding: 30px 0 50px; border-top: 1px solid var(--line); color: var(--faint); font-size: 13px; }
   footer .wrap { display: flex; gap: 20px; flex-wrap: wrap; align-items: center; justify-content: space-between; }
 
-  @media (max-width: 860px) {
+  @media (max-width: 900px) {
     nav .links { display: none; }
-    .feature, .feature.flip, .ai { grid-template-columns: 1fr; gap: 28px; }
-    .feature.flip .copy { order: 0; }
-    .grid3 { grid-template-columns: 1fr; }
-    .ai { padding: 28px; }
-    .hero { padding-top: 56px; }
+    .points, .cards3, .keys { grid-template-columns: 1fr 1fr; }
+    .duo, .ai { grid-template-columns: 1fr; }
+    .ai { padding: 32px; }
+    .tile { padding: 28px 22px 0; }
+    section { padding-top: 88px; }
+  }
+  @media (max-width: 560px) {
+    .points, .cards3, .keys { grid-template-columns: 1fr; }
     .wrap { padding: 0 16px; }
+    .hero { padding-top: 48px; }
   }
 </style>
 </head>
@@ -117,100 +154,109 @@
   <div class="wrap">
     <a class="brand" href="#"><img src="images/icon.png" alt="">Attic</a>
     <div class="links">
-      <a href="#features">Features</a>
-      <a href="#ai">On-device AI</a>
+      <a href="#folders">Folders</a>
+      <a href="#search">Search</a>
+      <a href="#cleanup">Clean Up</a>
       <a href="#cloud">R2 &amp; iCloud</a>
-      <a href="#open-source">Open source</a>
-      <a href="#faq">FAQ</a>
+      <a href="#ai">On-device AI</a>
+      <a href="#finder">vs Finder</a>
+      <a href="https://github.com/piyushgit011/attic-mac">GitHub</a>
     </div>
-    <a class="btn ghost" style="padding:9px 16px;font-size:14px" href="https://github.com/piyushgit011/attic-mac">
-      <svg viewBox="0 0 16 16" fill="currentColor"><path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"/></svg>
-      GitHub
-    </a>
+    <a class="navbtn" href="https://github.com/piyushgit011/attic-mac/releases/latest/download/Attic.dmg">Download</a>
   </div>
 </nav>
 
 <header class="hero">
   <div class="wrap">
     <img class="icon" src="images/icon.png" alt="Attic app icon">
-    <h1>Free up your Mac.<br><span class="grad">Keep everything.</span></h1>
-    <p class="lead">Attic shows you what's filling your disk, clears what you don't need, and moves big files to Cloudflare R2 or iCloud Drive with a placeholder you double-click to bring back.</p>
+    <div class="eyebrow" style="margin-top:18px">Attic 1.3 · Free and open source</div>
+    <h1>The Finder alternative<br><span class="grad">that frees up your Mac.</span></h1>
+    <p class="lead">Every folder with big, clear thumbnails. A search that understands plain English. And a calm, safe way to clear out what you don't need, or move it to Cloudflare R2 or iCloud Drive.</p>
     <div class="ctas">
       <a class="btn primary" href="https://github.com/piyushgit011/attic-mac/releases/latest/download/Attic.dmg">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 12.6c-.03-2.6 2.13-3.86 2.22-3.92-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.95-3.94.95-.82 0-2.07-.93-3.4-.9-1.75.03-3.36 1.02-4.26 2.58-1.82 3.15-.46 7.81 1.3 10.37.87 1.25 1.9 2.65 3.24 2.6 1.3-.05 1.8-.84 3.37-.84 1.57 0 2.02.84 3.4.81 1.4-.02 2.29-1.27 3.14-2.53.99-1.45 1.4-2.86 1.42-2.93-.03-.01-2.72-1.04-2.72-4.15zM13.78 4.95c.71-.87 1.2-2.07 1.06-3.27-1.03.04-2.28.69-3.02 1.55-.66.76-1.24 1.99-1.09 3.16 1.15.09 2.33-.58 3.05-1.44z"/></svg>
         Download for Mac
       </a>
-      <a class="btn ghost" href="https://github.com/piyushgit011/attic-mac">★ Star on GitHub</a>
+      <a class="btn ghost" href="#film">Watch the film ›</a>
+      <a class="btn ghost" href="https://github.com/piyushgit011/attic-mac">View on GitHub ›</a>
     </div>
-    <div class="meta">Free · Open source (MIT) · macOS 14 or later · Apple silicon &amp; Intel · Notarized by Apple</div>
-    <div class="video">
-      <video src="media/attic-launch.mp4" poster="images/video-poster.jpg" controls muted playsinline preload="metadata"></video>
+    <div class="meta">Free · MIT licensed · macOS 14 or later · Apple silicon &amp; Intel · Notarized by Apple</div>
+    <div class="film" id="film">
+      <video src="media/attic-film.mp4" poster="images/video-poster.jpg" controls playsinline preload="metadata"></video>
     </div>
   </div>
 </header>
 
-<section id="features">
+<section id="folders">
   <div class="wrap">
     <div class="section-head">
-      <span class="kicker">Features</span>
-      <h2 style="margin-top:14px">Everything that's eating your disk, in one place.</h2>
+      <span class="eyebrow">Folders</span>
+      <h2>Every folder.<br>Finally easy to see.</h2>
+      <p class="lead">Your home folder, Desktop, Documents, Downloads and the rest open right in Attic. Folders show the files inside them, files show big thumbnails, and sizes appear as you browse.</p>
     </div>
-
-    <div class="feature">
-      <div class="copy">
-        <h3>🔎 Search the way you talk</h3>
-        <p>Type “pdfs from last week over 5 mb” or “screenshots with wifi password”. Attic shows how it read your search as chips you can remove, and it reads the words inside your screenshots too.</p>
-      </div>
-      <div class="shot"><img src="gifs/search.gif" alt="Plain-English search" loading="lazy"></div>
-    </div>
-
-    <div class="feature flip">
-      <div class="copy">
-        <h3>✨ Clean Up, Duplicates, Deep Clean</h3>
-        <ul>
-          <li>Cards for forgotten downloads, old installers, old screenshots, big old videos and unused apps</li>
-          <li>Duplicates found by content (SHA-256), counting APFS clones correctly</li>
-          <li><code>node_modules</code>, Xcode builds, Python envs and package caches that rebuild themselves</li>
-        </ul>
-        <p>Everything goes to the Trash. You review first.</p>
-      </div>
-      <div class="shot"><img src="gifs/cleanup.gif" alt="Clean Up, Duplicates and Deep Clean" loading="lazy"></div>
-    </div>
-
-    <div class="feature">
-      <div class="copy">
-        <h3>🧠 Memory &amp; Swap</h3>
-        <p>When memory runs short, macOS writes it to swap files on your disk, and those can take 10 GB or more. See how much swap is in use and which apps are holding memory, then quit them in one click.</p>
-      </div>
-      <div class="shot"><img src="images/memory.jpg" alt="Memory and swap" loading="lazy"></div>
-    </div>
-
-    <div class="feature flip">
-      <div class="copy">
-        <h3>⌘ Quick Search from any app</h3>
-        <p>Press <b>⇧⌘Space</b> anywhere for a small search panel that understands the same plain English. The menu bar icon lists your latest downloads, ready to drag into Mail or Slack.</p>
-      </div>
-      <div class="shot"><img src="gifs/quicksearch.gif" alt="Quick Search" loading="lazy"></div>
+    <div class="tile"><div class="shot"><img src="gifs/folders.gif" alt="Browsing folders in Attic" loading="lazy"></div></div>
+    <div class="points">
+      <div><h3>Explore</h3><p>Double-click to open, ⌘[ and ⌘] to go back and forward, ⌘↑ for the folder above, ⇧⌘G for any path.</p></div>
+      <div><h3>Organize</h3><p>Drag files onto any folder to move them, ⌥ to copy. New Folder, Rename and Move to Trash are a right-click away.</p></div>
+      <div><h3>See what's big</h3><p>Folder sizes are measured in the background, so you can sort any folder by size.</p></div>
+      <div><h3>Live</h3><p>Pin folders to the sidebar. Changes made in Finder or by a download show up right away.</p></div>
     </div>
   </div>
 </section>
 
-<section id="ai">
+<section id="looks">
+  <div class="wrap looks center">
+    <div class="section-head">
+      <span class="eyebrow">Two looks</span>
+      <h2>Playful or Minimal.</h2>
+      <p class="lead">Soft colour for every kind of file, or quiet black, white and grey with your files peeking out of plain folders. Switch any time with ⌃⌘T.</p>
+    </div>
+    <div class="switch" role="group" aria-label="Look">
+      <button type="button" aria-pressed="true" data-look="playful">Playful</button>
+      <button type="button" aria-pressed="false" data-look="minimal">Minimal</button>
+    </div>
+    <div class="shot"><img id="lookimg" src="images/site/home.jpg" alt="Attic Home in the Playful look" loading="lazy"></div>
+  </div>
+</section>
+
+<section id="search">
   <div class="wrap">
-    <div class="ai">
-      <div>
-        <span class="kicker"> On-device AI</span>
-        <h2 style="margin-top:14px">AI that stays on your Mac.</h2>
-        <p>Attic uses the intelligence that already ships with macOS:</p>
-        <ul style="color:var(--dim);padding-left:20px">
-          <li><b style="color:var(--ink)">Apple Intelligence</b> (the on-device model) understands searches like “the invoice my accountant emailed me”.</li>
-          <li><b style="color:var(--ink)">Apple Vision</b>, the Live Text engine, reads the text in your screenshots so you can search it and copy it.</li>
-          <li><b style="color:var(--ink)">Siri &amp; Shortcuts</b>: “Find files in Attic”, “How much space is left in Attic”, “Free up space with Attic”.</li>
-        </ul>
-        <p>No prompts, files or text are sent anywhere. There's no Attic server at all.</p>
-        <div class="pill-row"><span class="pill">Apple Intelligence</span><span class="pill">Apple Vision</span><span class="pill">Siri &amp; Shortcuts</span><span class="pill">0 bytes uploaded</span></div>
+    <div class="section-head">
+      <span class="eyebrow">Search</span>
+      <h2>Find anything.<br>Just say it.</h2>
+      <p class="lead">Type “pdfs from last week over 5 mb” or “screenshots with wifi password”. Attic shows how it understood you as chips you can change, and it reads the words inside your screenshots too.</p>
+    </div>
+    <div class="tile"><div class="shot"><img src="gifs/search.gif" alt="Plain-English search finding a screenshot by its text" loading="lazy"></div></div>
+    <div class="duo" style="margin-top:22px">
+      <div class="tile">
+        <h3>Screenshots you only copied, kept.</h3>
+        <p>If your Mac copies screenshots to the clipboard, Attic can save each new one to Pictures ▸ Screenshots so you can find it later and search its text.</p>
+        <div class="shot"><img src="images/site/screenshots.jpg" alt="Screenshots in Attic" loading="lazy"></div>
       </div>
-      <div class="shot"><img src="images/ai-search.jpg" alt="Apple Intelligence search on this Mac" loading="lazy"></div>
+      <div class="tile">
+        <h3>Quick Search, from any app.</h3>
+        <p>Press ⇧⌘Space anywhere for a small panel that understands the same plain English. ↩ opens, ⌥↩ shows in Finder.</p>
+        <div class="shot"><img src="gifs/quicksearch.gif" alt="Quick Search" loading="lazy"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="cleanup">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Clean Up</span>
+      <h2>Gigabytes back.<br>Safely.</h2>
+      <p class="lead">Attic finds the things you forgot about and shows what they're worth. You review everything, and it all goes to the Trash, so you can put it back.</p>
+    </div>
+    <div class="tile"><div class="shot"><img src="gifs/cleanup.gif" alt="Clean Up, Duplicates and Deep Clean" loading="lazy"></div></div>
+    <div class="cards3">
+      <div class="card"><div class="ico">✨</div><h3>Clean Up cards</h3><p>Forgotten downloads, old installers, old screenshots, big old videos and apps you haven't opened in months.</p></div>
+      <div class="card"><div class="ico">🪞</div><h3>Duplicates</h3><p>Identical files found by their contents. One copy stays; click another to keep it instead. APFS clones are counted correctly.</p></div>
+      <div class="card"><div class="ico">🛠️</div><h3>Deep Clean</h3><p><code>node_modules</code>, Xcode builds, Python environments and caches. Projects you're working on are never picked.</p></div>
+      <div class="card"><div class="ico">📊</div><h3>Storage</h3><p>What “System Data” really is: projects, app data, caches, developer tools, simulators, swap and macOS.</p></div>
+      <div class="card"><div class="ico">🧠</div><h3>Memory &amp; Swap</h3><p>See how much swap is on your disk and which apps hold memory, with Quit right there.</p></div>
+      <div class="card"><div class="ico">📥</div><h3>Downloaded From</h3><p>Every download grouped by where it came from: Gmail, Slack, ChatGPT, GitHub or any website.</p></div>
     </div>
   </div>
 </section>
@@ -218,15 +264,15 @@
 <section id="cloud">
   <div class="wrap">
     <div class="section-head">
-      <span class="kicker">Offload</span>
-      <h2 style="margin-top:14px">Big files live in the cloud. You keep a placeholder.</h2>
-      <p class="lead">Pick files and choose where they go. Attic removes the copy on your Mac only after the cloud copy checks out.</p>
+      <span class="eyebrow">Offload</span>
+      <h2>Big files in the cloud.<br>A placeholder on your Mac.</h2>
+      <p class="lead">Move big files to your own Cloudflare R2 bucket or to iCloud Drive. Attic removes the copy on your Mac only after the cloud copy checks out, and app libraries like Photos always stay put.</p>
     </div>
-    <div class="shot" style="margin-bottom:28px"><img src="gifs/offload.gif" alt="Offloading videos to Cloudflare R2" loading="lazy"></div>
-    <div class="tablewrap">
+    <div class="tile"><div class="shot"><img src="gifs/offload.gif" alt="Offloading videos to Cloudflare R2" loading="lazy"></div></div>
+    <div class="tablewrap" style="margin-top:22px">
       <table>
         <tr><th></th><th>Cloudflare R2</th><th>iCloud Drive</th></tr>
-        <tr><td>Where it goes</td><td>A private bucket of your own (created for you)</td><td>iCloud Drive ▸ Attic</td></tr>
+        <tr><td>Where it goes</td><td>A private bucket of your own</td><td>iCloud Drive ▸ Attic</td></tr>
         <tr><td>What stays on your Mac</td><td>A tiny <code>name.ext.attic</code> placeholder</td><td>A link in the original folder</td></tr>
         <tr><td>Getting it back</td><td>Double-click the placeholder</td><td>Just open it</td></tr>
         <tr><td>Safety check</td><td>MD5 on every part, then a size check in R2</td><td>Waits for iCloud to confirm the upload</td></tr>
@@ -236,17 +282,76 @@
   </div>
 </section>
 
+<section id="ai">
+  <div class="wrap">
+    <div class="ai">
+      <div>
+        <span class="eyebrow">On-device AI</span>
+        <h2 style="margin-top:10px">AI that stays<br>on your Mac.</h2>
+        <ul style="padding-left:20px;margin-top:18px">
+          <li><b>Apple Intelligence</b>, the on-device model, understands searches like “the invoice my accountant emailed me”.</li>
+          <li><b>Apple Vision</b>, the Live Text engine, reads the text in your screenshots so you can search it and copy it from many images at once.</li>
+          <li><b>Siri &amp; Shortcuts</b>: Find Files, Get Latest Download, Check Storage, Free Up Space.</li>
+        </ul>
+        <p>No prompts, files or text are sent anywhere. There's no Attic server at all.</p>
+        <div class="pills"><span class="pill">Apple Intelligence</span><span class="pill">Apple Vision</span><span class="pill">Siri &amp; Shortcuts</span><span class="pill">0 bytes uploaded</span></div>
+      </div>
+      <div class="shot"><img src="images/site/ai-search.jpg" alt="Apple Intelligence search on this Mac" loading="lazy"></div>
+    </div>
+  </div>
+</section>
+
+<section id="finder">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Attic or Finder?</span>
+      <h2>Keep using both.</h2>
+      <p class="lead">Attic shows the same files, and “Show in Finder” is always one click away. Here's what it adds.</p>
+    </div>
+    <div class="tablewrap">
+      <table>
+        <tr><th></th><th>Attic</th><th>Finder</th></tr>
+        <tr><td>Browsing a folder</td><td class="yes">Folder cards with files peeking out, big thumbnails, sizes measured for you</td><td>Icons, lists and columns; folder sizes off by default</td></tr>
+        <tr><td>Seeing what you have</td><td class="yes">Images, videos, music, documents, archives and apps, each on its own shelf</td><td>Folder by folder</td></tr>
+        <tr><td>Searching</td><td class="yes">“pdfs from last week”, shown as filters you can change</td><td>Search rules added one at a time</td></tr>
+        <tr><td>Text in screenshots</td><td class="yes">Searchable, and copied from many images at once</td><td>Found by Spotlight; copied one image at a time</td></tr>
+        <tr><td>Where downloads came from</td><td class="yes">Grouped by source</td><td>One file at a time in Get Info</td></tr>
+        <tr><td>Duplicates</td><td class="yes">Found by contents, with the real space you'd get back</td><td>Nothing built in</td></tr>
+        <tr><td>Freeing up space</td><td class="yes">Clean Up, Deep Clean, Storage, swap, R2 and iCloud offload</td><td>System Settings ▸ Storage</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
+<section id="keys">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Keyboard</span>
+      <h2>A shortcut for everything.</h2>
+    </div>
+    <div class="keys">
+      <div class="key">Quick Search, any app <kbd>⇧⌘Space</kbd></div>
+      <div class="key">Search in Attic <kbd>⌘F</kbd></div>
+      <div class="key">Go to Folder <kbd>⇧⌘G</kbd></div>
+      <div class="key">Back / Forward <kbd>⌘[ ⌘]</kbd></div>
+      <div class="key">Enclosing folder <kbd>⌘↑</kbd></div>
+      <div class="key">New Folder <kbd>⇧⌘N</kbd></div>
+      <div class="key">Clean Up <kbd>⇧⌘K</kbd></div>
+      <div class="key">Duplicates <kbd>⇧⌘D</kbd></div>
+      <div class="key">Downloaded From <kbd>⇧⌘J</kbd></div>
+      <div class="key">Copy text from images <kbd>⇧⌘C</kbd></div>
+      <div class="key">Quick Look <kbd>Space</kbd></div>
+      <div class="key">Switch look <kbd>⌃⌘T</kbd></div>
+    </div>
+  </div>
+</section>
+
 <section id="open-source">
   <div class="wrap">
     <div class="section-head">
-      <span class="kicker">&lt;/&gt; Open source</span>
-      <h2 style="margin-top:14px">Free and open source. MIT licensed.</h2>
-      <p class="lead">Read every line, build it yourself, or grab the notarized download. No account, no tracking, no server.</p>
-    </div>
-    <div class="grid3">
-      <div class="card"><div class="ico">🧩</div><h3>Native SwiftUI</h3><p>About 7,000 lines of Swift, no third-party dependencies. The R2 client signs its own requests.</p></div>
-      <div class="card"><div class="ico">🧪</div><h3>Self-tests</h3><p><code>Attic --selftest</code> checks search, scanning, memory, R2 round trips and iCloud offload/restore.</p></div>
-      <div class="card"><div class="ico">🎬</div><h3>Reproducible media</h3><p>Every screenshot, GIF and the launch video come from a made-up demo library, built by scripts in the repo.</p></div>
+      <span class="eyebrow">Open source</span>
+      <h2>Free. Open. Yours.</h2>
+      <p class="lead">MIT licensed, native SwiftUI, no third-party dependencies, no account, no tracking and no server. Read every line or build it yourself.</p>
     </div>
     <pre>brew install xcodegen
 git clone https://github.com/piyushgit011/attic-mac && cd attic-mac
@@ -254,30 +359,57 @@ xcodegen generate
 xcodebuild -project Attic.xcodeproj -scheme Attic -configuration Release \
   -derivedDataPath build/dd CODE_SIGN_IDENTITY=- DEVELOPMENT_TEAM= build
 open build/dd/Build/Products/Release/Attic.app</pre>
-    <div class="ctas" style="justify-content:flex-start">
-      <a class="btn ghost" href="https://github.com/piyushgit011/attic-mac">View the code</a>
-      <a class="btn ghost" href="https://github.com/piyushgit011/attic-mac/blob/main/CONTRIBUTING.md">Contribute</a>
-      <a class="btn ghost" href="https://github.com/piyushgit011/attic-mac/issues/new/choose">Report a bug</a>
+    <div class="ctas">
+      <a class="btn ghost" href="https://github.com/piyushgit011/attic-mac">View the code ›</a>
+      <a class="btn ghost" href="https://github.com/piyushgit011/attic-mac/blob/main/CONTRIBUTING.md">Contribute ›</a>
+      <a class="btn ghost" href="https://github.com/piyushgit011/attic-mac/issues/new/choose">Report a bug ›</a>
     </div>
   </div>
 </section>
 
 <section id="faq">
-  <div class="wrap">
+  <div class="wrap" style="max-width:820px">
     <div class="section-head"><h2>Questions</h2></div>
-    <details><summary>Does Attic upload my files?</summary><p>Only files you choose to offload, and only to your own R2 bucket or your iCloud Drive. Scanning, search, text recognition and the AI all run on your Mac.</p></details>
+    <details><summary>Does Attic replace Finder?</summary><p>It sits next to it. Attic shows the same files and folders with bigger previews, better search and tools to free up space, and “Show in Finder” is always there.</p></details>
+    <details><summary>Does Attic upload my files?</summary><p>Only files you choose to offload, and only to your own R2 bucket or your iCloud Drive. Browsing, search, text recognition and the AI all run on your Mac.</p></details>
     <details><summary>Will it delete things?</summary><p>Clean Up, Duplicates and Deep Clean move items to the Trash, so you can always put them back. Offloading removes a local copy only after the cloud copy checks out.</p></details>
+    <details><summary>Why aren't my recent screenshots showing?</summary><p>If your Mac copies screenshots to the clipboard (⇧⌘5 ▸ Options ▸ Clipboard), no file is ever saved. Turn on Keep Screenshot History in Attic and each new one is saved to Pictures ▸ Screenshots.</p></details>
     <details><summary>What do I need for the AI search?</summary><p>A Mac with Apple Intelligence turned on (macOS 26 or later). Without it, search still works using Attic's own rules.</p></details>
-    <details><summary>Why does it ask for Desktop, Documents and Downloads?</summary><p>macOS protects those folders. Attic needs to see them to show your files and work out what's using space.</p></details>
     <details><summary>Is it really free?</summary><p>Yes. MIT licensed, no subscription, no account. If R2 is your offload target, Cloudflare bills you directly for storage (about $0.015 per GB a month).</p></details>
   </div>
 </section>
 
+<div class="final">
+  <div class="wrap">
+    <img src="images/icon.png" alt="">
+    <h2 style="margin-top:18px">Give your files<br><span class="grad">a home that's easy to see.</span></h2>
+    <div class="ctas">
+      <a class="btn primary" href="https://github.com/piyushgit011/attic-mac/releases/latest/download/Attic.dmg">Download Attic for Mac</a>
+    </div>
+    <div class="meta">Free and open source · macOS 14 or later</div>
+  </div>
+</div>
+
 <footer>
   <div class="wrap">
-    <span>Attic · Free and open source (MIT)</span>
+    <span>Attic · Free and open source (MIT). Not made by or affiliated with Apple.</span>
     <span><a href="https://github.com/piyushgit011/attic-mac">GitHub</a> · <a href="https://github.com/piyushgit011/attic-mac/releases">Releases</a> · <a href="https://github.com/piyushgit011/attic-mac/blob/main/CHANGELOG.md">Changelog</a></span>
   </div>
 </footer>
+<script>
+  document.querySelectorAll('.switch button').forEach(function (b) {
+    b.addEventListener('click', function () {
+      var look = b.getAttribute('data-look');
+      document.querySelectorAll('.switch button').forEach(function (x) { x.setAttribute('aria-pressed', String(x === b)); });
+      var img = document.getElementById('lookimg');
+      img.style.opacity = 0;
+      setTimeout(function () {
+        img.src = look === 'minimal' ? 'images/site/home-minimal.jpg' : 'images/site/home.jpg';
+        img.alt = 'Attic Home in the ' + (look === 'minimal' ? 'Minimal' : 'Playful') + ' look';
+        img.onload = function () { img.style.opacity = 1; };
+      }, 180);
+    });
+  });
+</script>
 </body>
 </html>

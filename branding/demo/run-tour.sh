@@ -12,9 +12,10 @@ mkdir -p "$BIN"
 [ -x "$BIN/shot" ] || swiftc -O "$HERE/shot.swift" -o "$BIN/shot"
 osascript -e 'tell application id "studio.versely.attic" to quit' 2>/dev/null || true
 sleep 1.5; rm -rf "$T"
-open "$APP" --args -AtticDemo "$DEMO" -AtticTour "$1" \
+open -g "$APP" --args -AtticDemo "$DEMO" -AtticTour "$1" -AtticQuiet "${ATTIC_QUIET:-YES}" \
   -sort.junk Size -sort.junk.reversed NO -sort.sources "Most files" -sort.sources.reversed NO -sort.cleanup Size \
-  -sort.cleanup.reversed NO -sort.dupes "Space to free" -sort.dupes.reversed NO -sort.apps Memory -sort.apps.reversed NO
+  -sort.cleanup.reversed NO -sort.dupes "Space to free" -sort.dupes.reversed NO -sort.apps Memory -sort.apps.reversed NO \
+  -appearance "${ATTIC_APPEARANCE:-light}" -keepScreenshots NO -sort.folder Name -sort.folder.reversed NO
 for i in {1..600}; do [ -f "$T/ready" ] && break; sleep 0.2; done
 if [ "$1" = "stills" ]; then
   OUT="$2"; mkdir -p "$OUT"; touch "$T/go"; n=1

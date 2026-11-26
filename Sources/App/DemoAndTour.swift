@@ -112,9 +112,15 @@ enum Tour {
         guard let w = mainWindow, let screen = w.screen ?? NSScreen.main else { return }
         let size = NSSize(width: 1280, height: 800)
         let f = screen.visibleFrame
-        w.setFrame(NSRect(x: f.midX - size.width / 2, y: f.midY - size.height / 2, width: size.width, height: size.height), display: true, animate: false)
-        NSApp.activate(ignoringOtherApps: true)
-        w.makeKeyAndOrderFront(nil)
+        if UserDefaults.standard.bool(forKey: "AtticQuiet") {
+            // Quiet mode: film the window off to the side without taking focus from whatever you're doing.
+            w.setFrame(NSRect(x: screen.frame.maxX + 400, y: f.minY, width: size.width, height: size.height), display: true, animate: false)
+            w.orderBack(nil)
+        } else {
+            w.setFrame(NSRect(x: f.midX - size.width / 2, y: f.midY - size.height / 2, width: size.width, height: size.height), display: true, animate: false)
+            NSApp.activate(ignoringOtherApps: true)
+            w.makeKeyAndOrderFront(nil)
+        }
         QuickSearchController.shared.anchor = w.frame
     }
 
@@ -188,6 +194,30 @@ enum Tour {
             await pause(2.4)
         case "memory":
             nav.go(.memory); await pause(6)
+        case "folders":
+            let home = Locations.home
+            nav.go(.home); await pause(1.4)
+            nav.go(.folder(home.path)); await pause(2.6)
+            let downloads = home.appendingPathComponent("Downloads")
+            nav.go(.folder(downloads.path)); await pause(2.4)
+            let pdf = ((try? FileManager.default.contentsOfDirectory(at: downloads, includingPropertiesForKeys: nil)) ?? [])
+                .filter { $0.pathExtension == "pdf" }.sorted { $0.lastPathComponent < $1.lastPathComponent }.first
+            if let pdf {
+                nav.selection = [pdf]; nav.focused = pdf; await pause(0.8)
+                nav.showInspector = true; await pause(2.6)
+                nav.showInspector = false; await pause(0.6)
+            }
+            nav.viewMode = .list; await pause(2.2)
+            nav.viewMode = .grid; await pause(0.8)
+            nav.go(.folder(home.appendingPathComponent("Pictures").path)); await pause(2.4)
+            nav.goBack(); await pause(1.2)
+            nav.goBack(); await pause(1.8)
+        case "looks":
+            nav.go(.home); await pause(2.4)
+            UserDefaults.standard.set(Look.minimal.rawValue, forKey: Prefs.look); await pause(3)
+            nav.go(.folder(Locations.home.path)); await pause(2.4)
+            UserDefaults.standard.set(Look.playful.rawValue, forKey: Prefs.look); await pause(2.6)
+            nav.go(.home); await pause(1.6)
         case "quicksearch":
             nav.go(.home); await pause(1)
             QuickSearchController.shared.show(); await pause(0.8)
@@ -255,6 +285,11 @@ enum Tour {
         let clips = demoItems(["Lisbon trip.mp4", "Studio session raw.mov"])
         await cloud.offload(clips, after: .delete, leaveStubs: true)
         nav.go(.home); await shot("home")
+        UserDefaults.standard.set(Look.minimal.rawValue, forKey: Prefs.look); await shot("home-minimal")
+        UserDefaults.standard.set(Look.playful.rawValue, forKey: Prefs.look)
+        nav.go(.folder(Locations.home.path)); await shot("folder-home")
+        nav.go(.folder(Locations.home.appendingPathComponent("Downloads").path)); await shot("folder-downloads")
+        nav.go(.screenshots); await shot("screenshots")
         nav.searchText = "screenshots with wifi password"
         await waitFor { !nav.query.isEmpty }
         if let first = library.items.first(where: { nav.query.matches($0, ocr: AppState.shared.ocr.texts[$0.path]) }) {

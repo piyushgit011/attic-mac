@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0
+- **A Finder alternative.** Locations in the sidebar (home, Desktop, Documents, Downloads, Pictures, Movies, Music, Developer, iCloud Drive, Applications) open like Finder: folders as cards with their files peeking out, big thumbnails, a clickable path bar, folder sizes measured in the background, and live updates when something changes.
+- **Finder actions:** drag files onto any folder to move them (⌥ copies), New Folder (⇧⌘N), Rename, Go to Folder (⇧⌘G), Enclosing Folder (⌘↑), Show Hidden Files (⇧⌘.), Show in Enclosing Folder, and pinned folders in the sidebar.
+- **New look.** Home shows your Library as soft coloured folders, Clean Up cards, your folders, recent screenshots and where downloads came from. A new search bar sits on the left of the top bar (⌘F) with free space beside it, and every list has From, Kind, Date, Size and Sort filters.
+- **Two looks: Playful and Minimal** (⌃⌘T), plus a Light / Dark / Same as my Mac setting.
+- **Screenshot history.** If your Mac copies screenshots to the clipboard, Attic can save each new one to Pictures ▸ Screenshots so you can find it and search its text. Only real screenshots are kept.
+- **Duplicates** are found in the background and shown with Keep and Trash tags; "Keep 1, Trash the rest" per group.
+- **Saved searches** in the sidebar, a **music player** in the top bar, and an inspector with dimensions, duration, camera and folder sizes for any file, indexed or not.
+- **Get Latest Download** for Shortcuts and Siri. Open Attic at login.
+- **Safety:** app libraries (Photos, Music, TV, iMovie, Final Cut, Lightroom) are never offloaded or evicted, and an older offload of one is never evicted. Restoring from iCloud Drive falls back to a plain move for packages.
+- New app icon.
+
 ## 1.2.2
 - **Deep Clean judges activity correctly.** It used git's index file, which editors rewrite constantly, so every project looked "used today". It now goes by your last commit or checkout and dependency changes.
 - Build caches (`.next`, Xcode `build/`, Swift `.build`) are always offered, and dependencies once a project has been idle a week.

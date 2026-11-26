@@ -15,10 +15,21 @@ func load(_ url: URL) -> CGImage { NSImage(contentsOf: url)!.cgImage(forProposed
 func canvas(_ w: Int, _ h: Int) -> CGContext {
     CGContext(data: nil, width: w, height: h, bitsPerComponent: 8, bytesPerRow: 0, space: space, bitmapInfo: CGImageAlphaInfo.premultipliedLast.rawValue)!
 }
-func write(_ ctx: CGContext, _ name: String) {
+func write(_ ctx: CGContext, _ name: String, dir: String = "") {
     let rep = NSBitmapImageRep(cgImage: ctx.makeImage()!)
-    try! rep.representation(using: .png, properties: [:])!.write(to: out.appendingPathComponent(name))
-    print("  docs/images/\(name)")
+    let folder = dir.isEmpty ? out : out.appendingPathComponent(dir)
+    try? FileManager.default.createDirectory(at: folder, withIntermediateDirectories: true)
+    try! rep.representation(using: .png, properties: [:])!.write(to: folder.appendingPathComponent(name))
+    print("  docs/images/\(dir.isEmpty ? "" : dir + "/")\(name)")
+}
+
+/// Soft warm light backdrop for the website.
+func lightBackdrop(_ ctx: CGContext, _ w: CGFloat, _ h: CGFloat) {
+    ctx.setFillColor(color(0xF6F1EE)); ctx.fill(CGRect(x: 0, y: 0, width: w, height: h))
+    for (x, y, r, c, a) in [(0.1, 0.9, 0.6, 0xFFC27A, 0.35), (0.95, 0.15, 0.6, 0xF7A1BC, 0.30), (0.6, 1.0, 0.5, 0xFFB08A, 0.22)] as [(CGFloat, CGFloat, CGFloat, UInt32, CGFloat)] {
+        let g = CGGradient(colorsSpace: space, colors: [color(c, a), color(c, 0)] as CFArray, locations: [0, 1])!
+        ctx.drawRadialGradient(g, startCenter: CGPoint(x: x * w, y: y * h), startRadius: 0, endCenter: CGPoint(x: x * w, y: y * h), endRadius: r * max(w, h), options: [])
+    }
 }
 
 /// Warm dark backdrop with soft brand glows.
@@ -35,7 +46,7 @@ func window(_ ctx: CGContext, _ img: CGImage, _ rect: CGRect, radius: CGFloat) {
     let path = CGPath(roundedRect: rect, cornerWidth: radius, cornerHeight: radius, transform: nil)
     ctx.saveGState()
     ctx.setShadow(offset: CGSize(width: 0, height: -rect.width * 0.025), blur: rect.width * 0.06, color: color(0x000000, 0.55))
-    ctx.addPath(path); ctx.setFillColor(color(0x1D1D1F)); ctx.fillPath()
+    ctx.addPath(path); ctx.setFillColor(color(0xF2F2F4)); ctx.fillPath()
     ctx.restoreGState()
     ctx.saveGState(); ctx.addPath(path); ctx.clip()
     ctx.interpolationQuality = .high
@@ -61,10 +72,10 @@ if let homeURL = shotURL("home") {
     let icon = load(root.appendingPathComponent("branding/attic-icon-1024.png"))
     ctx.draw(icon, in: CGRect(x: 110, y: H - 150 - 260, width: 260, height: 260))
     text(ctx, "Attic", 140, H - 600, 190, .bold, .white, rounded: true, kern: -4)
-    text(ctx, "Free up your Mac.", 146, H - 700, 64, .semibold, NSColor(white: 1, alpha: 0.92))
-    text(ctx, "Keep everything.", 146, H - 780, 64, .semibold, NSColor(srgbRed: 1, green: 0.72, blue: 0.52, alpha: 1))
-    let bullets = ["Plain-English search, even inside screenshots", "Clean Up, Duplicates and Deep Clean", "Memory & Swap: see what to quit",
-                   "Offload to Cloudflare R2 or iCloud Drive"]
+    text(ctx, "The Finder alternative", 146, H - 700, 62, .semibold, NSColor(white: 1, alpha: 0.92))
+    text(ctx, "that frees up your Mac.", 146, H - 778, 62, .semibold, NSColor(srgbRed: 1, green: 0.72, blue: 0.52, alpha: 1))
+    let bullets = ["Browse every folder with big, clear thumbnails", "Search in plain English, even inside screenshots",
+                   "Clean Up, Duplicates and Deep Clean", "Offload to Cloudflare R2 or iCloud Drive"]
     for (i, b) in bullets.enumerated() {
         ctx.setFillColor(color(0xFF9A5A)); ctx.fillEllipse(in: CGRect(x: 150, y: H - 885 - CGFloat(i) * 62, width: 14, height: 14))
         text(ctx, b, 184, H - 906 - CGFloat(i) * 62, 36, .medium, NSColor(white: 1, alpha: 0.72))
@@ -79,7 +90,9 @@ if let homeURL = shotURL("home") {
 // MARK: Framed screenshots (1800 wide)
 // Shots are matched by label (the number prefix can shift when tours change).
 let framed: [(String, String)] = [
-    ("home", "home"), ("search", "search"), ("ai-search", "ai-search"), ("images", "library"), ("downloaded-from", "downloaded-from"),
+    ("home", "home"), ("home-minimal", "home-minimal"), ("folder-home", "folders"), ("folder-downloads", "folder-downloads"),
+    ("screenshots", "screenshots"),
+    ("search", "search"), ("ai-search", "ai-search"), ("images", "library"), ("downloaded-from", "downloaded-from"),
     ("cleanup", "cleanup"), ("cleanup-review", "cleanup-review"), ("duplicates", "duplicates"), ("deep-clean", "deep-clean"),
     ("memory", "memory"), ("large-files", "large-files"), ("offload-sheet-icloud", "offload-icloud"),
     ("offload-sheet-r2", "offload-r2"), ("cloud", "cloud"), ("offloaded", "offloaded"), ("quick-search", "quick-search"),
@@ -100,4 +113,19 @@ for (src, name) in framed {
     backdrop(ctx, W, H)
     window(ctx, img, CGRect(x: pad, y: pad, width: ww, height: wh), radius: 18)
     write(ctx, "\(name).png")
+}
+
+// MARK: Website shots on a light backdrop (docs/images/site)
+for (src, name) in framed {
+    guard let url = shotURL(src) else { continue }
+    let img = load(url)
+    let W: CGFloat = 1800
+    let pad: CGFloat = 70
+    let ww = W - pad * 2
+    let wh = ww * CGFloat(img.height) / CGFloat(img.width)
+    let H = wh + pad * 2
+    let ctx = canvas(Int(W), Int(H))
+    lightBackdrop(ctx, W, H)
+    window(ctx, img, CGRect(x: pad, y: pad, width: ww, height: wh), radius: 18)
+    write(ctx, "\(name).png", dir: "site")
 }

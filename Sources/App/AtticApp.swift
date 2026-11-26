@@ -17,13 +17,16 @@ struct AtticApp: App {
             ContentView()
                 .withAtticEnvironment()
                 .frame(minWidth: 960, minHeight: 600)
+                .modifier(AppearanceChoice())
         }
-        .defaultSize(width: 1280, height: 820)
+        .defaultSize(width: 1320, height: 860)
+        .windowToolbarStyle(.unified(showsTitle: false))
         .commands { AtticCommands() }
 
         Settings {
             SettingsView()
                 .withAtticEnvironment()
+                .modifier(AppearanceChoice())
         }
 
         MenuBarExtra(isInserted: $menuBarEnabled) {
@@ -33,6 +36,14 @@ struct AtticApp: App {
             Image("MenuBarMark")
         }
         .menuBarExtraStyle(.window)
+    }
+}
+
+/// Light, Dark, or follow the Mac.
+struct AppearanceChoice: ViewModifier {
+    @AppStorage(Prefs.appearance) private var appearance = "system"
+    func body(content: Content) -> some View {
+        content.preferredColorScheme(appearance == "light" ? .light : appearance == "dark" ? .dark : nil)
     }
 }
 
@@ -47,6 +58,7 @@ final class AppState {
     let deepClean = DeepCleanModel()
     let dupes = DuplicatesModel()
     let storage = StorageBreakdownModel()
+    let player = MusicPlayer()
     let cloud: CloudStore
 
     private init() {
@@ -54,7 +66,14 @@ final class AppState {
         let starts: [String: SidebarItem] = ["storage": .storage, "cloud": .cloud, "deepClean": .deepClean, "memory": .memory, "cleanup": .cleanup,
                                              "duplicates": .duplicates, "offloaded": .offloaded, "downloads": .downloadedFrom,
                                              "large": .largeFiles, "images": .category(.images)]
-        if let s = UserDefaults.standard.string(forKey: "AtticStart"), let item = starts[s] { nav.setInitial(item) }
+        if let s = UserDefaults.standard.string(forKey: "AtticStart") {
+            if let item = starts[s] { nav.setInitial(item) }
+            else if s == "screenshots" { nav.setInitial(.screenshots) }
+            else if s.hasPrefix("folder:") {
+                let rel = String(s.dropFirst(7))
+                nav.setInitial(.folder(rel.hasPrefix("/") ? rel : Locations.home.appendingPathComponent(rel).path))
+            }
+        }
         if let q = UserDefaults.standard.string(forKey: "AtticSearch") { nav.searchText = q }
     }
 }
@@ -70,12 +89,14 @@ extension View {
             .environment(s.transfers)
             .environment(s.ocr)
             .environment(s.memory)
+            .environment(s.player)
     }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         QuickSearchController.shared.installHotKey()
+        ScreenshotKeeper.shared.start()
         Tour.startIfRequested()
     }
 
@@ -94,6 +115,7 @@ enum SidebarItem: Hashable {
     case home, recents, downloadedFrom, source(String)
     case category(FileCategory)
     case largeFiles, screenshots
+    case folder(String), saved(String)
     case storage, cleanup, cleanupCard(CleanupCard.Kind), duplicates, deepClean, memory
     case cloud, offloaded
 }
@@ -187,6 +209,17 @@ final class NavigationModel {
     var aiThinking = false
     var selection = Set<URL>()
     var focused: URL?
+    var anchor: URL?
+    var focusSearchToken = 0
+    var showHidden = UserDefaults.standard.bool(forKey: Prefs.showHidden) {
+        didSet { UserDefaults.standard.set(showHidden, forKey: Prefs.showHidden) }
+    }
+    var renameTarget: FileItem?
+    var renameText = ""
+    var showGoToFolder = false
+    var goToText = ""
+    var pinned: [String] = Locations.pinned
+    var savedSearches: [String] = UserDefaults.standard.stringArray(forKey: Prefs.savedSearches) ?? []
     var showInspector = false
     var viewMode: ViewMode = .grid
     var cardSize: Double = UserDefaults.standard.object(forKey: Prefs.cardSize) as? Double ?? 150 {
@@ -250,7 +283,110 @@ final class NavigationModel {
     }
 
     func selectedItems(in library: LibraryStore) -> [FileItem] {
-        library.items.filter { selection.contains($0.url) }
+        let found = library.items.filter { selection.contains($0.url) }
+        if found.count == selection.count { return found }
+        // In a folder, files outside the library index can be selected too.
+        let known = Set(found.map(\.url))
+        return found + selection.filter { !known.contains($0) }.compactMap { FileItem.load($0) }
+    }
+
+    /// The folder on screen, if you're browsing one.
+    var currentFolder: URL? {
+        if case .folder(let p) = sidebar, searchText.isEmpty { return URL(fileURLWithPath: p) }
+        return nil
+    }
+
+    // MARK: Pinned folders and saved searches
+
+    func pin(_ path: String) {
+        guard !pinned.contains(path) else { return }
+        pinned.append(path)
+        Locations.pinned = pinned
+    }
+
+    func unpin(_ path: String) {
+        pinned.removeAll { $0 == path }
+        Locations.pinned = pinned
+    }
+
+    func movePinned(from: IndexSet, to: Int) {
+        pinned.move(fromOffsets: from, toOffset: to)
+        Locations.pinned = pinned
+    }
+
+    func save(_ search: String) {
+        let q = search.trimmingCharacters(in: .whitespaces)
+        guard !q.isEmpty, !savedSearches.contains(q) else { return }
+        savedSearches.append(q)
+        UserDefaults.standard.set(savedSearches, forKey: Prefs.savedSearches)
+        AppState.shared.library.show(toast: "Saved “\(q)” to the sidebar")
+    }
+
+    func unsave(_ search: String) {
+        savedSearches.removeAll { $0 == search }
+        UserDefaults.standard.set(savedSearches, forKey: Prefs.savedSearches)
+        if sidebar == .saved(search) { go(.home) }
+    }
+
+    // MARK: Finder actions
+
+    func beginRename(_ item: FileItem) {
+        renameText = item.url.lastPathComponent
+        renameTarget = item
+    }
+
+    func commitRename() {
+        guard let t = renameTarget else { return }
+        renameTarget = nil
+        do {
+            let new = try FileOps.rename(t.url, to: renameText)
+            guard new != t.url else { return }
+            if let i = pinned.firstIndex(of: t.path) { pinned[i] = new.path; Locations.pinned = pinned }
+            AppState.shared.library.filesChanged(moved: [(t.url, new)])
+            if sidebar == .folder(t.path) { setInitial(.folder(new.path)) }
+            selection = [new]
+            focused = new
+        } catch {
+            AppState.shared.library.show(toast: error.localizedDescription)
+        }
+    }
+
+    func newFolder(in dir: URL) {
+        do {
+            let url = try FileOps.newFolder(in: dir)
+            AppState.shared.library.filesChanged(added: [url])
+            selection = [url]
+            if let item = FileItem.load(url) { beginRename(item) }
+        } catch {
+            AppState.shared.library.show(toast: "Couldn’t make a folder here: \(error.localizedDescription)")
+        }
+    }
+
+    func goToFolder() {
+        let raw = goToText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !raw.isEmpty else { return }
+        let path = URL(fileURLWithPath: (raw as NSString).expandingTildeInPath).standardizedFileURL.path
+        var isDir: ObjCBool = false
+        guard FileManager.default.fileExists(atPath: path, isDirectory: &isDir) else {
+            AppState.shared.library.show(toast: "There’s no folder at \(raw)")
+            return
+        }
+        if isDir.boolValue && !(path as NSString).pathExtension.lowercased().hasSuffix("app") {
+            go(.folder(path))
+        } else {
+            let file = URL(fileURLWithPath: path)
+            go(.folder(file.deletingLastPathComponent().path))
+            selection = [file]
+            focused = file
+        }
+    }
+
+    func enclosingFolder() {
+        guard let cur = currentFolder, cur.path != "/" else { return }
+        let parent = cur.deletingLastPathComponent()
+        go(.folder(parent.path))
+        selection = [cur]
+        focused = cur
     }
 
     func quickLook(_ url: URL, in list: [URL]) {
@@ -261,20 +397,45 @@ final class NavigationModel {
 
 struct AtticCommands: Commands {
     var body: some Commands {
+        CommandGroup(replacing: .textEditing) {
+            Button("Find") { AppState.shared.nav.focusSearchToken += 1 }.keyboardShortcut("f")
+        }
+        CommandGroup(after: .newItem) {
+            Button("New Folder") {
+                let nav = AppState.shared.nav
+                nav.newFolder(in: nav.currentFolder ?? Locations.home.appendingPathComponent("Desktop"))
+            }
+            .keyboardShortcut("n", modifiers: [.command, .shift])
+        }
         CommandGroup(after: .sidebar) {
-            Button("Grid") { AppState.shared.nav.viewMode = .grid }.keyboardShortcut("1")
-            Button("List") { AppState.shared.nav.viewMode = .list }.keyboardShortcut("2")
+            Button("as Grid") { AppState.shared.nav.viewMode = .grid }.keyboardShortcut("1")
+            Button("as List") { AppState.shared.nav.viewMode = .list }.keyboardShortcut("2")
             Button("Bigger Cards") { AppState.shared.nav.cardSize = min(320, AppState.shared.nav.cardSize + 30) }.keyboardShortcut("+")
-            Button("Smaller Cards") { AppState.shared.nav.cardSize = max(90, AppState.shared.nav.cardSize - 30) }.keyboardShortcut("-")
+            Button("Smaller Cards") { AppState.shared.nav.cardSize = max(130, AppState.shared.nav.cardSize - 30) }.keyboardShortcut("-")
             Button("Show Inspector") { AppState.shared.nav.showInspector.toggle() }.keyboardShortcut("i")
+            Button("Show or Hide Hidden Files") { AppState.shared.nav.showHidden.toggle() }.keyboardShortcut(".", modifiers: [.command, .shift])
+            Button("Switch Look (Playful / Minimal)") { Look.toggle() }.keyboardShortcut("t", modifiers: [.command, .control])
             Divider()
             Button("Rescan") { AppState.shared.library.scan() }.keyboardShortcut("r")
         }
         CommandMenu("Go") {
             Button("Back") { AppState.shared.nav.goBack() }.keyboardShortcut("[")
             Button("Forward") { AppState.shared.nav.goForward() }.keyboardShortcut("]")
+            Button("Enclosing Folder") { AppState.shared.nav.enclosingFolder() }.keyboardShortcut(.upArrow)
             Divider()
-            Button("Home") { AppState.shared.nav.go(.home) }.keyboardShortcut("h", modifiers: [.command, .shift])
+            Button("Go to Folder…") {
+                let nav = AppState.shared.nav
+                nav.goToText = nav.currentFolder.map { Fmt.path($0) } ?? "~/"
+                nav.showGoToFolder = true
+            }
+            .keyboardShortcut("g", modifiers: [.command, .shift])
+            Button("Home Folder") { AppState.shared.nav.go(.folder(Locations.home.path)) }.keyboardShortcut("h", modifiers: [.command, .option, .shift])
+            Button("Desktop") { AppState.shared.nav.go(.folder(Locations.home.appendingPathComponent("Desktop").path)) }
+            Button("Downloads") { AppState.shared.nav.go(.folder(Locations.home.appendingPathComponent("Downloads").path)) }.keyboardShortcut("l", modifiers: [.command, .option])
+            Button("Applications") { AppState.shared.nav.go(.folder("/Applications")) }.keyboardShortcut("a", modifiers: [.command, .shift])
+            Divider()
+            Button("Attic Home") { AppState.shared.nav.go(.home) }.keyboardShortcut("h", modifiers: [.command, .shift])
+            Button("Screenshots") { AppState.shared.nav.go(.screenshots) }.keyboardShortcut("5", modifiers: [.command, .shift, .option])
             Button("Downloaded From") { AppState.shared.nav.go(.downloadedFrom) }.keyboardShortcut("j", modifiers: [.command, .shift])
             Button("Storage") { AppState.shared.nav.go(.storage) }.keyboardShortcut("s", modifiers: [.command, .shift])
             Button("Clean Up") { AppState.shared.nav.go(.cleanup) }.keyboardShortcut("k", modifiers: [.command, .shift])
@@ -285,6 +446,11 @@ struct AtticCommands: Commands {
             Button("Offloaded Files") { AppState.shared.nav.go(.offloaded) }.keyboardShortcut("o", modifiers: [.command, .shift])
             Divider()
             Button("Quick Search") { QuickSearchController.shared.toggle() }.keyboardShortcut(.space, modifiers: [.command, .shift])
+        }
+        CommandMenu("Controls") {
+            Button("Play / Pause") { AppState.shared.player.togglePlay() }.keyboardShortcut("p", modifiers: [.command, .option])
+            Button("Next Song") { AppState.shared.player.next() }.keyboardShortcut(.rightArrow, modifiers: [.command, .option])
+            Button("Previous Song") { AppState.shared.player.previous() }.keyboardShortcut(.leftArrow, modifiers: [.command, .option])
         }
         CommandMenu("Files") {
             Button("Copy Text from Images") {

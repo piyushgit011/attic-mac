@@ -71,6 +71,13 @@ enum Prefs {
     static let scanRoots = "scanRoots"
     static let cardSize = "cardSize"
     static let trashedBytes = "trashedBytes"
+    static let look = "look"
+    static let appearance = "appearance"
+    static let keepScreenshots = "keepScreenshots"
+    static let screenshotFolder = "screenshotFolder"
+    static let pinnedFolders = "pinnedFolders"
+    static let savedSearches = "savedSearches"
+    static let showHidden = "showHidden"
 
     static func defaultRoots() -> [String] {
         let home = FileManager.default.homeDirectoryForCurrentUser

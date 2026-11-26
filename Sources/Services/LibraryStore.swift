@@ -59,6 +59,9 @@ final class LibraryStore {
                 self.lastScan = Date()
                 self.scanCount = all.count
                 AppState.shared.ocr.indexInBackground(all)
+                // Like Clean Up, duplicates are found in the background so Home can show what they'd free.
+                let dupes = AppState.shared.dupes
+                if !dupes.scanning { dupes.scan(all) }
             }
         }
     }
@@ -88,6 +91,8 @@ final class LibraryStore {
         Array(items.filter { $0.category != .apps }.sorted { $0.arrivalDate > $1.arrivalDate }.prefix(400))
     }
     var screenshots: [FileItem] { items.filter(\.isScreenshot) }
+    var screenshotCount: Int { items.reduce(0) { $0 + ($1.isScreenshot ? 1 : 0) } }
+    var largeFileCount: Int { items.reduce(0) { $0 + ($1.spaceOnDisk >= 100_000_000 && $1.category != .apps ? 1 : 0) } }
     var largeFiles: [FileItem] { items.filter { $0.spaceOnDisk >= 100_000_000 && $0.category != .apps }.sorted { $0.spaceOnDisk > $1.spaceOnDisk } }
     func items(from source: String) -> [FileItem] { items.filter { $0.source == source } }
     var latestDownloads: [FileItem] {
@@ -102,12 +107,53 @@ final class LibraryStore {
 
     func remove(urls: Set<URL>) {
         guard !urls.isEmpty else { return }
-        items.removeAll { urls.contains($0.url) }
+        // Folders aren't in the index, but the files inside them are.
+        let known = Set(items.map(\.url))
+        let folders = urls.filter { !known.contains($0) }.map { $0.path + "/" }
+        items.removeAll { item in urls.contains(item.url) || (!folders.isEmpty && folders.contains { item.path.hasPrefix($0) }) }
         let index = LibraryStore.buildIndex(items)
         totals = index.totals
         sources = index.sources
         cleanupCards = CleanupEngine.cards(for: items)
         refreshDisk()
+        for u in urls { FolderSizeCache.shared.invalidate(u.deletingLastPathComponent().path) }
+        FolderPeekCache.shared.clear()
+        fsVersion += 1
+    }
+
+    /// Bumped whenever Attic changes files, so an open folder reloads right away.
+    var fsVersion = 0
+
+    /// Keeps the index right after a rename, move, copy, new folder or saved screenshot, without a full rescan.
+    func filesChanged(moved: [(URL, URL)] = [], added: [URL] = []) {
+        var gone = Set<URL>()
+        var fresh = added
+        var folderMoved = false
+        for (from, to) in moved {
+            gone.insert(from)
+            fresh.append(to)
+        }
+        let roots = Prefs.scanRootPaths
+        func indexed(_ u: URL) -> Bool { roots.contains { u.path.hasPrefix($0 + "/") } }
+        if !gone.isEmpty { items.removeAll { gone.contains($0.url) } }
+        var newItems: [FileItem] = []
+        for u in fresh {
+            guard let it = FileItem.load(u) else { continue }
+            if it.isDirectory { folderMoved = true; continue }
+            if indexed(u) && !items.contains(where: { $0.url == u }) { newItems.append(it) }
+        }
+        items += newItems
+        let index = LibraryStore.buildIndex(items)
+        totals = index.totals
+        sources = index.sources
+        cleanupCards = CleanupEngine.cards(for: items)
+        for u in gone.union(fresh) { FolderSizeCache.shared.invalidate(u.deletingLastPathComponent().path) }
+        FolderPeekCache.shared.clear()
+        fsVersion += 1
+        refreshDisk()
+        if !newItems.isEmpty { AppState.shared.ocr.indexNow(newItems) }
+        // A renamed or moved folder changes the path of everything inside it.
+        if folderMoved && !gone.isEmpty { scan() }
     }
 
     /// Adds freshly written .attic placeholders to the index without a full rescan.
@@ -244,7 +290,22 @@ final class CancelFlag: @unchecked Sendable {
 
 @MainActor
 enum FileActions {
+    /// What a double-click does: folders open in Attic, songs play in Attic, everything else opens in its app.
+    static func primary(_ item: FileItem, in list: [FileItem]) {
+        if item.isDirectory {
+            AppState.shared.nav.go(.folder(item.path))
+        } else if item.category == .music && !item.url.isAtticStub && !item.isCloudOnly {
+            AppState.shared.player.play(item, queue: list.filter { $0.category == .music })
+        } else {
+            open([item])
+        }
+    }
+
     static func open(_ items: [FileItem]) {
+        if items.count == 1, let one = items.first, one.isDirectory {
+            AppState.shared.nav.go(.folder(one.path))
+            return
+        }
         for it in items.prefix(20) {
             if it.url.isAtticStub {
                 Task { await AppState.shared.cloud.restoreStub(at: it.url, open: true) }

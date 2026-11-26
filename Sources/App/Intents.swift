@@ -47,12 +47,36 @@ struct FreeUpSpaceIntent: AppIntent {
     }
 }
 
+struct LatestDownloadIntent: AppIntent {
+    static let title: LocalizedStringResource = "Get Latest Download"
+    static let description = IntentDescription("The newest file in your Downloads folder, ready to share, move or open in a shortcut.")
+
+    struct NothingFound: Error, CustomLocalizedStringResourceConvertible {
+        var localizedStringResource: LocalizedStringResource { "Your Downloads folder is empty." }
+    }
+
+    func perform() async throws -> some IntentResult & ReturnsValue<IntentFile> & ProvidesDialog {
+        let dir = Locations.home.appendingPathComponent("Downloads")
+        let keys: [URLResourceKey] = [.addedToDirectoryDateKey, .creationDateKey]
+        let urls = (try? FileManager.default.contentsOfDirectory(at: dir, includingPropertiesForKeys: keys, options: [.skipsHiddenFiles])) ?? []
+        func arrived(_ u: URL) -> Date {
+            let rv = try? u.resourceValues(forKeys: Set(keys))
+            return rv?.addedToDirectoryDate ?? rv?.creationDate ?? .distantPast
+        }
+        guard let newest = urls.max(by: { arrived($0) < arrived($1) }) else { throw NothingFound() }
+        return .result(value: IntentFile(fileURL: newest, filename: newest.lastPathComponent),
+                       dialog: IntentDialog(stringLiteral: "Your latest download is \(newest.lastPathComponent)."))
+    }
+}
+
 struct AtticShortcuts: AppShortcutsProvider {
     static var appShortcuts: [AppShortcut] {
         AppShortcut(intent: FindFilesIntent(), phrases: ["Find files in \(.applicationName)", "Search \(.applicationName)"],
                     shortTitle: "Find Files", systemImageName: "magnifyingglass")
         AppShortcut(intent: StorageStatusIntent(), phrases: ["How much space is left in \(.applicationName)", "Check storage with \(.applicationName)"],
                     shortTitle: "Check Storage", systemImageName: "internaldrive")
+        AppShortcut(intent: LatestDownloadIntent(), phrases: ["Get my latest download with \(.applicationName)", "Latest download in \(.applicationName)"],
+                    shortTitle: "Latest Download", systemImageName: "arrow.down.circle")
         AppShortcut(intent: FreeUpSpaceIntent(), phrases: ["Free up space with \(.applicationName)", "Clean up my Mac with \(.applicationName)"],
                     shortTitle: "Free Up Space", systemImageName: "sparkles")
     }

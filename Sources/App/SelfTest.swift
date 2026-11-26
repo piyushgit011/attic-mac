@@ -1,6 +1,7 @@
 import Foundation
 import AppKit
 import CryptoKit
+import ImageIO
 
 /// `Attic.app/Contents/MacOS/Attic --selftest [--r2]` runs the non-UI engine against real data and prints results.
 enum SelfTest {
@@ -149,6 +150,51 @@ enum SelfTest {
         print("    cleanup: " + cards.map { "\($0.title) \(Fmt.bytes($0.bytes))" }.joined(separator: ", "))
         let matches = items.filter { q1.matches($0, ocr: nil) }.count
         print("    “pdfs from last week over 5 mb” → \(matches) matches")
+
+        print("— Folders (Finder actions in a temporary folder)")
+        let tmp = FileManager.default.temporaryDirectory.appendingPathComponent("attic-folders-\(UUID().uuidString.prefix(6))", isDirectory: true)
+        do {
+            let fm = FileManager.default
+            try fm.createDirectory(at: tmp, withIntermediateDirectories: true)
+            try Data("hello".utf8).write(to: tmp.appendingPathComponent("note.txt"))
+            try Data(repeating: 7, count: 4096).write(to: tmp.appendingPathComponent(".hidden"))
+            let made = try FileOps.newFolder(in: tmp)
+            check(made.lastPathComponent == "untitled folder", "new folder", &f)
+            let renamed = try FileOps.rename(made, to: "Invoices")
+            check(renamed.lastPathComponent == "Invoices" && fm.fileExists(atPath: renamed.path), "rename", &f)
+            let moved = FileOps.transfer([tmp.appendingPathComponent("note.txt")], into: renamed, copy: false)
+            check(moved.moved.count == 1 && fm.fileExists(atPath: renamed.appendingPathComponent("note.txt").path), "move into folder", &f)
+            let intoItself = FileOps.transfer([renamed], into: renamed, copy: false)
+            check(intoItself.moved.isEmpty && intoItself.failed.count == 1, "refuses moving a folder into itself", &f)
+            let visible = FolderReader.read(tmp, showHidden: false)
+            let all = FolderReader.read(tmp, showHidden: true)
+            check(visible.folders.map(\.name) == ["Invoices"] && visible.files.isEmpty && all.files.count == 1, "read folder (hidden files)", &f)
+            let size = FolderSizeCache.measure(tmp) { false } ?? 0
+            check(size >= 4096, "folder size \(Fmt.bytes(size))", &f)
+            let crumbs = Locations.crumbs(for: NSHomeDirectory() + "/Documents/Invoices/2026")
+            print("    " + crumbs.map(\.title).joined(separator: " ▸ "))
+            check(crumbs.count == 4 && crumbs.last?.title == "2026", "path crumbs", &f)
+            check(FileItem.isAppLibrary(path: "/Users/x/Pictures/Photos Library.photoslibrary") && !FileItem.isAppLibrary(path: "/x/a.key"), "app libraries are protected", &f)
+            try? fm.removeItem(at: tmp)
+        } catch {
+            check(false, "folder actions: \(error.localizedDescription)", &f)
+        }
+
+        print("— Screenshot history")
+        let shot = NSImage(size: NSSize(width: 40, height: 30))
+        shot.lockFocus(); NSColor.orange.setFill(); NSRect(x: 0, y: 0, width: 40, height: 30).fill(); shot.unlockFocus()
+        func png(comment: String?) -> Data {
+            let cg = shot.cgImage(forProposedRect: nil, context: nil, hints: nil)!
+            let data = NSMutableData()
+            let dest = CGImageDestinationCreateWithData(data, "public.png" as CFString, 1, nil)!
+            let props: [CFString: Any] = comment.map { [kCGImagePropertyExifDictionary: [kCGImagePropertyExifUserComment: $0]] } ?? [:]
+            CGImageDestinationAddImage(dest, cg, props as CFDictionary)
+            CGImageDestinationFinalize(dest)
+            return data as Data
+        }
+        check(ScreenshotKeeper.isScreenshot(png(comment: "Screenshot")), "recognizes a macOS screenshot", &f)
+        check(!ScreenshotKeeper.isScreenshot(png(comment: nil)), "ignores other copied images", &f)
+        print("    macOS saves screenshots to: \(ScreenshotKeeper.macOSTarget)")
 
         print("— Memory & swap")
         let snap = MemoryMonitor.readSnapshot()

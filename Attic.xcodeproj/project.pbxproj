@@ -17,6 +17,7 @@
 		51B3805DD15D6F87CBFCBEC2 /* LibraryStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 87DAF852284536D743B18BAF /* LibraryStore.swift */; };
 		5739CC65848AC1F354DF4540 /* Cleanup.swift in Sources */ = {isa = PBXBuildFile; fileRef = 406EA6BF724DAF955FC89D9F /* Cleanup.swift */; };
 		5B782277F0BA5466019FAB58 /* MemoryMonitor.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7BD2E78FB130F7EF2F1C2677 /* MemoryMonitor.swift */; };
+		5ECBEB4E0002787DAF3E3291 /* ScreenshotKeeper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2875C83BCEE893D02B8C277A /* ScreenshotKeeper.swift */; };
 		6B5135B37755154B323F52D9 /* StorageBreakdown.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3077D3B6E43C6975E6D36101 /* StorageBreakdown.swift */; };
 		74006FCFAB8F9113FC02EEAA /* Intents.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9759E52B5F21B46675508601 /* Intents.swift */; };
 		7731CD432BEE14117DDA4883 /* R2Client.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D3D3D8C8478C08537624EBF /* R2Client.swift */; };
@@ -29,8 +30,12 @@
 		B40F9FCEAEED968241EAC7C1 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6496A177DDE9CF80C05FFF8A /* ContentView.swift */; };
 		B48DA780440DA863BC5B9EF3 /* OCRAndThumbnails.swift in Sources */ = {isa = PBXBuildFile; fileRef = A231D6FD8451CA530DC40295 /* OCRAndThumbnails.swift */; };
 		B85C1EE3989E9663D71161FC /* DemoAndTour.swift in Sources */ = {isa = PBXBuildFile; fileRef = B21336332D57441E17D59040 /* DemoAndTour.swift */; };
+		C5A8DC35F9215806DD1288C0 /* MusicPlayer.swift in Sources */ = {isa = PBXBuildFile; fileRef = CD3DC4FD2F20876A9340C2AC /* MusicPlayer.swift */; };
 		C880F11B2CA9FB171A40719B /* CloudViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC8EF0ED878C8B38AF2CF29 /* CloudViews.swift */; };
 		C8D1EE8CFB239B1B0AB79CA1 /* FileBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0E20A76E86C8A6F53C759658 /* FileBrowserView.swift */; };
+		CCC5CDD0E08D6FAC0F5EFCF3 /* FolderBrowserView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C8FB34818F7FF59F41F4B49A /* FolderBrowserView.swift */; };
+		CF8638357B782B72079192FC /* Folders.swift in Sources */ = {isa = PBXBuildFile; fileRef = 33AC59EFB8E5D2838BE39271 /* Folders.swift */; };
+		DAE270D828FE6520D2BB3A40 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4AAEA466C6FC52ADFD89E467 /* Theme.swift */; };
 		F1CF62B9D7E3401D5A0F7585 /* SelfTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = CFEEEAE4036A978D72A85F5C /* SelfTest.swift */; };
 		F7AE4D504957690F411CA9B5 /* DeepClean.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88D33D6FA19094724245AE91 /* DeepClean.swift */; };
 		F8538106AC23DD9165141F83 /* InspectorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C7D48560E8B3C6510A3B758 /* InspectorView.swift */; };
@@ -40,13 +45,16 @@
 /* Begin PBXFileReference section */
 		02E58024979B11C9110562BE /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		0E20A76E86C8A6F53C759658 /* FileBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileBrowserView.swift; sourceTree = "<group>"; };
+		2875C83BCEE893D02B8C277A /* ScreenshotKeeper.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ScreenshotKeeper.swift; sourceTree = "<group>"; };
 		2D3D3D8C8478C08537624EBF /* R2Client.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = R2Client.swift; sourceTree = "<group>"; };
 		3077D3B6E43C6975E6D36101 /* StorageBreakdown.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StorageBreakdown.swift; sourceTree = "<group>"; };
 		3105700AC48CDE97BDAA79CF /* CloudStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudStore.swift; sourceTree = "<group>"; };
+		33AC59EFB8E5D2838BE39271 /* Folders.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Folders.swift; sourceTree = "<group>"; };
 		3EC8EF0ED878C8B38AF2CF29 /* CloudViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CloudViews.swift; sourceTree = "<group>"; };
 		406EA6BF724DAF955FC89D9F /* Cleanup.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Cleanup.swift; sourceTree = "<group>"; };
 		42DC4EB0F04BFBED89A70E7A /* Scanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Scanner.swift; sourceTree = "<group>"; };
 		44D82F549B434835CA2FE006 /* Attic.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Attic.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		4AAEA466C6FC52ADFD89E467 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
 		4ABC6E982BB1B38316D561EC /* QueryParser.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QueryParser.swift; sourceTree = "<group>"; };
 		5E70D3D8AFE478ADE09DF7A8 /* AtticApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AtticApp.swift; sourceTree = "<group>"; };
 		63EEBFAD5D4E493C7BE8332A /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatting.swift; sourceTree = "<group>"; };
@@ -65,6 +73,8 @@
 		AACBCD8EC7CA498C9BF18C7A /* FileItem.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileItem.swift; sourceTree = "<group>"; };
 		B21336332D57441E17D59040 /* DemoAndTour.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DemoAndTour.swift; sourceTree = "<group>"; };
 		B546A76B2CEDDAFA761C86DC /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		C8FB34818F7FF59F41F4B49A /* FolderBrowserView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FolderBrowserView.swift; sourceTree = "<group>"; };
+		CD3DC4FD2F20876A9340C2AC /* MusicPlayer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MusicPlayer.swift; sourceTree = "<group>"; };
 		CFEEEAE4036A978D72A85F5C /* SelfTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SelfTest.swift; sourceTree = "<group>"; };
 		E8E178DFA155DF035C6C7CC5 /* CleanupViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CleanupViews.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
@@ -115,11 +125,13 @@
 				6496A177DDE9CF80C05FFF8A /* ContentView.swift */,
 				9A0F23EAF419F75CAA05F52C /* DeepCleanAndMemory.swift */,
 				0E20A76E86C8A6F53C759658 /* FileBrowserView.swift */,
+				C8FB34818F7FF59F41F4B49A /* FolderBrowserView.swift */,
 				B546A76B2CEDDAFA761C86DC /* HomeView.swift */,
 				8C7D48560E8B3C6510A3B758 /* InspectorView.swift */,
 				98896739667C913C3709D1C8 /* SettingsAndMenuBar.swift */,
 				66606B682618DAA637004D08 /* SortKeys.swift */,
 				900954B9F810621ADC1DEF3E /* StorageView.swift */,
+				4AAEA466C6FC52ADFD89E467 /* Theme.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -158,12 +170,15 @@
 			children = (
 				406EA6BF724DAF955FC89D9F /* Cleanup.swift */,
 				88D33D6FA19094724245AE91 /* DeepClean.swift */,
+				33AC59EFB8E5D2838BE39271 /* Folders.swift */,
 				87DAF852284536D743B18BAF /* LibraryStore.swift */,
 				66D94E96447199E938451E74 /* LocalAI.swift */,
 				7BD2E78FB130F7EF2F1C2677 /* MemoryMonitor.swift */,
+				CD3DC4FD2F20876A9340C2AC /* MusicPlayer.swift */,
 				A231D6FD8451CA530DC40295 /* OCRAndThumbnails.swift */,
 				4ABC6E982BB1B38316D561EC /* QueryParser.swift */,
 				42DC4EB0F04BFBED89A70E7A /* Scanner.swift */,
+				2875C83BCEE893D02B8C277A /* ScreenshotKeeper.swift */,
 				3077D3B6E43C6975E6D36101 /* StorageBreakdown.swift */,
 			);
 			path = Services;
@@ -251,6 +266,8 @@
 				B85C1EE3989E9663D71161FC /* DemoAndTour.swift in Sources */,
 				C8D1EE8CFB239B1B0AB79CA1 /* FileBrowserView.swift in Sources */,
 				F9ECB3938F2D11ED87A283F3 /* FileItem.swift in Sources */,
+				CCC5CDD0E08D6FAC0F5EFCF3 /* FolderBrowserView.swift in Sources */,
+				CF8638357B782B72079192FC /* Folders.swift in Sources */,
 				0AE05A394B16B357E794655C /* Formatting.swift in Sources */,
 				AA7BB51A00DBEF9FAF46185B /* HomeView.swift in Sources */,
 				F8538106AC23DD9165141F83 /* InspectorView.swift in Sources */,
@@ -258,15 +275,18 @@
 				51B3805DD15D6F87CBFCBEC2 /* LibraryStore.swift in Sources */,
 				2930274FC16328E5C556DB6B /* LocalAI.swift in Sources */,
 				5B782277F0BA5466019FAB58 /* MemoryMonitor.swift in Sources */,
+				C5A8DC35F9215806DD1288C0 /* MusicPlayer.swift in Sources */,
 				B48DA780440DA863BC5B9EF3 /* OCRAndThumbnails.swift in Sources */,
 				2A1F4E836416828E57DC593B /* QueryParser.swift in Sources */,
 				7731CD432BEE14117DDA4883 /* R2Client.swift in Sources */,
 				49EF48B75FA316A0AC61A458 /* Scanner.swift in Sources */,
+				5ECBEB4E0002787DAF3E3291 /* ScreenshotKeeper.swift in Sources */,
 				F1CF62B9D7E3401D5A0F7585 /* SelfTest.swift in Sources */,
 				93F778CDD0CF9D04407DCDF3 /* SettingsAndMenuBar.swift in Sources */,
 				B256C761617EC42BEDAFA550 /* SortKeys.swift in Sources */,
 				6B5135B37755154B323F52D9 /* StorageBreakdown.swift in Sources */,
 				2AF501FDFDAAFF1893649452 /* StorageView.swift in Sources */,
+				DAE270D828FE6520D2BB3A40 /* Theme.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -309,7 +329,7 @@
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = ZMNA9Z2VN7;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -330,7 +350,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.2.2;
+				MARKETING_VERSION = 1.3.0;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
@@ -378,7 +398,7 @@
 				CODE_SIGN_IDENTITY = "Developer ID Application";
 				CODE_SIGN_STYLE = Manual;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 5;
+				CURRENT_PROJECT_VERSION = 6;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = ZMNA9Z2VN7;
 				ENABLE_HARDENED_RUNTIME = YES;
@@ -393,7 +413,7 @@
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
 				MACOSX_DEPLOYMENT_TARGET = 14.0;
-				MARKETING_VERSION = 1.2.2;
+				MARKETING_VERSION = 1.3.0;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";

@@ -51,13 +51,13 @@ struct CleanupCard: Identifiable, Hashable {
 
     var tint: Color {
         switch kind {
-        case .forgottenDownloads: return .blue
-        case .oldInstallers: return .brown
-        case .oldScreenshots: return .pink
-        case .bigOldVideos: return .purple
-        case .largeFiles: return .orange
-        case .unusedApps: return .teal
-        case .alreadyInICloud: return .cyan
+        case .forgottenDownloads: return FileCategory.documents.pastel
+        case .oldInstallers: return FileCategory.archives.pastel
+        case .oldScreenshots: return FileCategory.images.pastel
+        case .bigOldVideos: return FileCategory.videos.pastel
+        case .largeFiles: return FileCategory.music.pastel
+        case .unusedApps: return FileCategory.apps.pastel
+        case .alreadyInICloud: return Color(red: 0.2, green: 0.7, blue: 0.95)
         }
     }
 
@@ -77,7 +77,7 @@ enum CleanupEngine {
         let installers = files.filter { $0.isInstaller && $0.arrivalDate < now - 7 * day }
         let shots = files.filter { $0.isScreenshot && $0.arrivalDate < now - 30 * day }
         let videos = files.filter { $0.category == .videos && $0.spaceOnDisk > 200_000_000 && $0.modified < now - 180 * day && $0.lastUsed < now - 90 * day }
-        let large = files.filter { $0.category != .apps && $0.spaceOnDisk > 500_000_000 }
+        let large = files.filter { $0.category != .apps && !$0.isAppLibrary && $0.spaceOnDisk > 500_000_000 }
         let apps = files.filter {
             $0.category == .apps && !($0.bundleID ?? "").hasPrefix("com.apple.")
                 && ($0.accessed ?? $0.added ?? $0.created) < now - 90 * day

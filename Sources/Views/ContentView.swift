@@ -6,12 +6,13 @@ struct ContentView: View {
     @Environment(NavigationModel.self) private var nav
     @Environment(TransferCenter.self) private var transfers
     @Environment(CloudStore.self) private var cloud
+    @Environment(MusicPlayer.self) private var player
 
     var body: some View {
         @Bindable var nav = nav
         NavigationSplitView {
             SidebarView()
-                .navigationSplitViewColumnWidth(min: 210, ideal: 236, max: 300)
+                .navigationSplitViewColumnWidth(min: 210, ideal: 240, max: 300)
         } detail: {
             DetailRouter()
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
@@ -20,7 +21,6 @@ struct ContentView: View {
                         .inspectorColumnWidth(min: 260, ideal: 300, max: 380)
                 }
         }
-        .searchable(text: $nav.searchText, placement: .toolbar, prompt: "Search, or try “pdfs from last week over 5 mb”")
         .toolbar {
             ToolbarItemGroup(placement: .navigation) {
                 Button { nav.goBack() } label: { Label("Back", systemImage: "chevron.left") }
@@ -28,8 +28,14 @@ struct ContentView: View {
                 Button { nav.goForward() } label: { Label("Forward", systemImage: "chevron.right") }
                     .disabled(!nav.canGoForward).help("Forward (⌘])")
             }
+            ToolbarItem(placement: .navigation) {
+                TopSearchField()
+            }
             ToolbarItemGroup(placement: .primaryAction) {
+                if player.current != nil { MiniPlayer() }
                 if !transfers.active.isEmpty { TransfersButton() }
+                FreeSpaceButton()
+                LookSwitcher()
                 Button { nav.showInspector.toggle() } label: { Label("Inspector", systemImage: "sidebar.right") }
                     .help("Show details (⌘I)")
             }
@@ -72,6 +78,18 @@ struct ContentView: View {
         } message: {
             Text("\(library.pendingCloudDelete.prefix(3).map(\.name).joined(separator: ", "))\(library.pendingCloudDelete.count > 3 ? " and \(library.pendingCloudDelete.count - 3) more" : "") \(library.pendingCloudDelete.count == 1 ? "is" : "are") only in iCloud and use no space on this Mac. macOS won’t move iCloud-only files to the Trash without downloading them first, so Attic can delete them from iCloud instead. You can recover them from iCloud.com ▸ Drive ▸ Recently Deleted for 30 days.")
         }
+        .alert("Rename “\(nav.renameTarget?.name ?? "")”", isPresented: Binding(get: { nav.renameTarget != nil }, set: { if !$0 { nav.renameTarget = nil } })) {
+            TextField("Name", text: $nav.renameText)
+            Button("Rename") { nav.commitRename() }
+            Button("Cancel", role: .cancel) { nav.renameTarget = nil }
+        }
+        .alert("Go to Folder", isPresented: $nav.showGoToFolder) {
+            TextField("~/Downloads", text: $nav.goToText)
+            Button("Go") { nav.goToFolder() }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("Type a folder’s path, like ~/Documents/Invoices or /Applications.")
+        }
         .onAppear { library.startIfNeeded() }
     }
 }
@@ -89,6 +107,61 @@ struct OffloadRequest: Identifiable {
     let items: [FileItem]
 }
 
+/// The search field on the left of the top bar. ⌘F jumps to it.
+struct TopSearchField: View {
+    @Environment(NavigationModel.self) private var nav
+    @FocusState private var focused: Bool
+
+    var body: some View {
+        @Bindable var nav = nav
+        let glass: Bool = { if #available(macOS 26, *) { return true } else { return false } }()
+        HStack(spacing: 6) {
+            Image(systemName: "magnifyingglass").foregroundStyle(.secondary)
+            TextField("Search, or try “pdfs from last week”…", text: $nav.searchText)
+                .textFieldStyle(.plain)
+                .focused($focused)
+                .onExitCommand { nav.searchText = ""; focused = false }
+            if nav.searchText.isEmpty {
+                HStack(spacing: 2) { KeyCap("⌘"); KeyCap("F") }
+            } else {
+                Button { nav.searchText = "" } label: { Image(systemName: "xmark.circle.fill").foregroundStyle(.secondary) }
+                    .buttonStyle(.plain).help("Clear search")
+            }
+        }
+        .padding(.horizontal, glass ? 6 : 9)
+        .frame(width: 380, height: 28)
+        .background {
+            if !glass {
+                RoundedRectangle(cornerRadius: 8).fill(Color(nsColor: .controlBackgroundColor))
+                    .overlay(RoundedRectangle(cornerRadius: 8).strokeBorder(focused ? Color.accentColor.opacity(0.7) : Color.primary.opacity(0.14), lineWidth: focused ? 2 : 1))
+            }
+        }
+        .onChange(of: nav.focusSearchToken) { _, _ in focused = true }
+    }
+}
+
+/// "95.9 GB free" in the top bar. Opens Storage.
+struct FreeSpaceButton: View {
+    @Environment(LibraryStore.self) private var library
+    @Environment(NavigationModel.self) private var nav
+
+    var body: some View {
+        let disk = library.disk
+        Button { nav.go(.storage) } label: {
+            HStack(spacing: 5) {
+                if library.isScanning { ProgressView().controlSize(.mini) }
+                Text("Free").foregroundStyle(.secondary)
+                Text(Fmt.bytes(disk.available)).fontWeight(.semibold).monospacedDigit()
+                    .foregroundStyle(disk.usedFraction > 0.9 ? Color.red : disk.usedFraction > 0.8 ? Color.orange : Color.primary)
+            }
+            .font(.callout)
+            .padding(.horizontal, 4)
+        }
+        .buttonStyle(.plain)
+        .help(library.isScanning ? "Scanning… \(Fmt.count(library.scanCount)) files" : "\(Fmt.bytes(disk.available)) free of \(Fmt.bytes(disk.total)). Click for the full breakdown.")
+    }
+}
+
 struct DetailRouter: View {
     @Environment(LibraryStore.self) private var library
     @Environment(NavigationModel.self) private var nav
@@ -99,12 +172,16 @@ struct DetailRouter: View {
         } else {
             switch nav.sidebar ?? .home {
             case .home: HomeView()
-            case .recents: FileBrowserView(title: "Recents", subtitle: "Newest arrivals first", items: library.recents, defaultSort: .arrival)
+            case .recents: FileBrowserView(title: "Recents", subtitle: "Newest arrivals first", items: library.recents, defaultSort: .arrival).id("recents")
             case .downloadedFrom: DownloadedFromView()
-            case .source(let s): FileBrowserView(title: s, subtitle: "Downloaded from \(s)", items: library.items(from: s), defaultSort: .arrival)
-            case .category(let c): FileBrowserView(title: c.title, subtitle: nil, items: library.items(in: c), defaultSort: c == .apps ? .size : .arrival)
-            case .largeFiles: FileBrowserView(title: "Large Files", subtitle: "Over 100 MB, biggest first", items: library.largeFiles, defaultSort: .size)
-            case .screenshots: FileBrowserView(title: "Screenshots", subtitle: "Search finds the text inside them", items: library.screenshots, defaultSort: .arrival)
+            case .source(let s): FileBrowserView(title: s, subtitle: "Downloaded from \(s)", items: library.items(from: s), defaultSort: .arrival).id("source-\(s)")
+            case .category(let c): FileBrowserView(title: c.title, subtitle: nil, items: library.items(in: c), defaultSort: c == .apps ? .size : .arrival).id("cat-\(c.rawValue)")
+            case .largeFiles: FileBrowserView(title: "Large Files", subtitle: "Over 100 MB", items: library.largeFiles, defaultSort: .size).id("large")
+            case .screenshots:
+                FileBrowserView(title: "Screenshots", subtitle: "Search finds the text inside them", items: library.screenshots, defaultSort: .arrival,
+                                banner: AnyView(ScreenshotHistoryBanner())).id("shots")
+            case .folder(let p): FolderBrowserView(path: p).id("folder-\(p)")
+            case .saved(let q): SavedSearchView(text: q).id("saved-\(q)")
             case .storage: StorageView()
             case .cleanup: CleanupOverview()
             case .cleanupCard(let kind):
@@ -127,30 +204,63 @@ struct SidebarView: View {
     @Environment(NavigationModel.self) private var nav
     @Environment(CloudStore.self) private var cloud
     @Environment(MemoryMonitor.self) private var memory
+    @AppStorage(Prefs.look) private var look = Look.playful.rawValue
 
     var body: some View {
         @Bindable var nav = nav
+        let dupes = AppState.shared.dupes
+        let dupeBytes = dupes.groups.reduce(Int64(0)) { $0 + $1.reclaimable }
         List(selection: $nav.sidebar) {
-            Section("Discover") {
+            Section {
+                HStack(spacing: 8) {
+                    Image("LogoMark").resizable().frame(width: 22, height: 22)
+                    Text("Attic").font(.system(size: 15, weight: .semibold))
+                }
+                .padding(.vertical, 2)
+                .selectionDisabled()
                 row(.home, "Home", "house")
                 row(.recents, "Recents", "clock")
-                row(.downloadedFrom, "Downloaded From", "arrow.down.circle", count: library.sources.count)
-            }
-            Section("Library") {
                 ForEach(FileCategory.library) { c in
-                    row(.category(c), c.title, c.symbol, count: library.totals[c]?.count, tint: c.tint)
+                    row(.category(c), c.title, c.symbol, count: library.totals[c]?.count)
                 }
             }
-            Section("Smart Folders") {
-                row(.largeFiles, "Large Files", "scalemass")
-                row(.screenshots, "Screenshots", "camera.viewfinder")
+            Section {
+                row(.largeFiles, "Large Files", "scalemass", badge: library.largeFileCount)
+                row(.screenshots, "Screenshots", "camera.viewfinder", count: library.screenshotCount)
+                row(.duplicates, "Duplicates", "square.on.square", good: dupeBytes)
+                row(.cleanup, "Clean Up", "sparkles", good: library.cleanupTotal)
+                row(.downloadedFrom, "Downloaded From", "arrow.down.circle", count: library.sources.count)
+            }
+            Section("Locations") {
+                ForEach(Locations.standard) { loc in
+                    folderRow(loc.title, loc.path, special: loc.symbol)
+                        .contextMenu { Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([loc.url]) } }
+                }
+            }
+            if !nav.pinned.isEmpty {
+                Section("Pinned") {
+                    ForEach(nav.pinned, id: \.self) { p in
+                        folderRow(Locations.title(for: p), p, special: nil)
+                            .contextMenu {
+                                Button("Show in Finder") { NSWorkspace.shared.activateFileViewerSelecting([URL(fileURLWithPath: p)]) }
+                                Button("Remove from Sidebar") { nav.unpin(p) }
+                            }
+                    }
+                    .onMove { from, to in nav.movePinned(from: from, to: to) }
+                }
+            }
+            if !nav.savedSearches.isEmpty {
+                Section("Saved Searches") {
+                    ForEach(nav.savedSearches, id: \.self) { q in
+                        row(.saved(q), q, "bookmark")
+                            .contextMenu { Button("Remove from Sidebar") { nav.unsave(q) } }
+                    }
+                }
             }
             Section("Free Up Space") {
-                row(.storage, "Storage", "chart.bar.xaxis", badge: library.disk.used)
-                row(.cleanup, "Clean Up", "sparkles", badge: library.cleanupTotal)
-                row(.duplicates, "Duplicates", "square.on.square")
+                row(.storage, "Storage", "chart.bar.xaxis", detail: library.disk.used)
                 row(.deepClean, "Deep Clean", "hammer")
-                row(.memory, "Memory & Swap", "memorychip", badge: Int64(memory.snapshot.swapUsed))
+                row(.memory, "Memory & Swap", "memorychip", detail: Int64(memory.snapshot.swapUsed))
             }
             Section("Cloud") {
                 row(.cloud, cloud.isConnected ? (cloud.creds?.bucket ?? "Bucket") : "Connect R2", "cloud")
@@ -159,50 +269,93 @@ struct SidebarView: View {
             }
         }
         .listStyle(.sidebar)
-        .safeAreaInset(edge: .bottom) { DiskMeter().padding(12) }
         .onAppear { memory.refresh() }
     }
 
     @ViewBuilder
-    private func row(_ item: SidebarItem, _ title: String, _ symbol: String, count: Int? = nil, badge: Int64? = nil, tint: Color? = nil) -> some View {
+    private func row(_ item: SidebarItem, _ title: String, _ symbol: String, count: Int? = nil, badge: Int? = nil,
+                     good: Int64? = nil, detail: Int64? = nil) -> some View {
         Label {
             HStack {
                 Text(title).lineLimit(1)
                 Spacer()
-                if let count, count > 0 {
+                if let badge, badge > 0 {
+                    Text(Fmt.count(badge)).font(.caption2.weight(.bold)).monospacedDigit()
+                        .foregroundStyle(look == Look.minimal.rawValue ? Color(nsColor: .windowBackgroundColor) : .white)
+                        .padding(.horizontal, 6).padding(.vertical, 1)
+                        .background(look == Look.minimal.rawValue ? Color.primary : Color.red, in: Capsule())
+                } else if let good, good > 0 {
+                    Text(Fmt.bytes(good)).font(.caption.weight(.semibold)).monospacedDigit()
+                        .foregroundStyle(look == Look.minimal.rawValue ? Color.primary : Palette.good)
+                } else if let count, count > 0 {
                     Text(Fmt.count(count)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
-                } else if let badge, badge > 0 {
-                    Text(Fmt.bytes(badge)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
+                } else if let detail, detail > 0 {
+                    Text(Fmt.bytes(detail)).font(.caption).foregroundStyle(.secondary).monospacedDigit()
                 }
             }
         } icon: {
-            Image(systemName: symbol).foregroundStyle(tint ?? .accentColor)
+            Image(systemName: symbol).foregroundStyle(.secondary)
         }
         .tag(item)
     }
+
+    private func folderRow(_ title: String, _ path: String, special: String?) -> some View {
+        Label {
+            Text(title).lineLimit(1)
+        } icon: {
+            if look == Look.minimal.rawValue {
+                Image(systemName: special ?? "folder").foregroundStyle(.secondary)
+            } else {
+                Image(systemName: special.map { $0 == "house" ? "house.fill" : "folder.fill" } ?? "folder.fill")
+                    .foregroundStyle(Palette.folderBlue)
+            }
+        }
+        .tag(SidebarItem.folder(path))
+        .dropDestination(for: URL.self) { urls, _ in
+            FolderDrop.handle(urls, into: URL(fileURLWithPath: path))
+        }
+    }
 }
 
-struct DiskMeter: View {
-    @Environment(LibraryStore.self) private var library
+/// Drop files on a folder (in the sidebar, on a folder card, or into an open folder) to move them there. ⌥ copies.
+@MainActor
+enum FolderDrop {
+    static func handle(_ urls: [URL], into dir: URL) -> Bool {
+        let copy = NSEvent.modifierFlags.contains(.option)
+        let files = urls.filter(\.isFileURL)
+        guard !files.isEmpty else { return false }
+        let library = AppState.shared.library
+        let result = FileOps.transfer(files, into: dir, copy: copy)
+        if !result.moved.isEmpty {
+            if copy { library.filesChanged(added: result.moved.map(\.1)) } else { library.filesChanged(moved: result.moved) }
+            library.show(toast: "\(copy ? "Copied" : "Moved") \(Fmt.plural(result.moved.count, "item")) to \(Locations.title(for: dir.path))")
+        } else if !result.failed.isEmpty {
+            library.show(toast: "Couldn’t move \(result.failed.prefix(3).joined(separator: ", "))")
+        }
+        return !result.moved.isEmpty
+    }
+}
+
+/// Song controls in the top bar while something plays.
+struct MiniPlayer: View {
+    @Environment(MusicPlayer.self) private var player
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 6) {
-            HStack {
-                Image(systemName: "internaldrive")
-                Text("Macintosh HD").font(.caption.weight(.semibold))
-                Spacer()
-                if library.isScanning {
-                    ProgressView().controlSize(.mini)
+        if let cur = player.current {
+            HStack(spacing: 8) {
+                Button { player.previous() } label: { Image(systemName: "backward.fill") }.buttonStyle(.borderless).help("Previous (⌥⌘←)")
+                Button { player.togglePlay() } label: { Image(systemName: player.isPlaying ? "pause.fill" : "play.fill") }
+                    .buttonStyle(.borderless).help("Play or pause (⌥⌘P)")
+                Button { player.next() } label: { Image(systemName: "forward.fill") }.buttonStyle(.borderless).help("Next (⌥⌘→)")
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(cur.name).font(.caption).lineLimit(1).truncationMode(.middle)
+                    ProgressView(value: player.progress).progressViewStyle(.linear).controlSize(.mini)
                 }
+                .frame(width: 150)
+                Button { player.stop() } label: { Image(systemName: "xmark") }.buttonStyle(.borderless).help("Stop")
             }
-            ProgressView(value: library.disk.usedFraction)
-                .tint(library.disk.usedFraction > 0.9 ? .red : library.disk.usedFraction > 0.8 ? .orange : .accentColor)
-            Text(library.isScanning ? "Scanning… \(Fmt.count(library.scanCount)) files"
-                 : "\(Fmt.bytes(library.disk.available)) free of \(Fmt.bytes(library.disk.total))")
-                .font(.caption2).foregroundStyle(.secondary)
+            .padding(.horizontal, 4)
         }
-        .padding(10)
-        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 10))
     }
 }
 
@@ -315,8 +468,8 @@ struct SectionHeader: View {
     var subtitle: String? = nil
     var body: some View {
         VStack(alignment: .leading, spacing: 2) {
-            Text(title).font(.title3.weight(.semibold))
-            if let subtitle { Text(subtitle).font(.callout).foregroundStyle(.secondary) }
+            Text(title).font(.system(size: 26, weight: .regular))
+            if let subtitle { Text(subtitle).font(.callout).foregroundStyle(.secondary).lineLimit(2) }
         }
     }
 }
