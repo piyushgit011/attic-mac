@@ -3,13 +3,19 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Attic: the Finder alternative that frees up your Mac</title>
-<meta name="description" content="Attic is a free, open-source Finder alternative for Mac. Every folder with big, clear thumbnails, plain-English search, Clean Up and Duplicates, and offload to Cloudflare R2 or iCloud Drive. AI that stays on your Mac.">
-<meta property="og:title" content="Attic: the Finder alternative that frees up your Mac">
-<meta property="og:description" content="Free and open source. Browse every folder beautifully, search in plain English, clear out what you don't need, and move big files to R2 or iCloud Drive.">
+<title>Attic: free up space on your Mac and keep everything</title>
+<meta name="description" content="Mac storage almost full? Attic shows what's filling your disk, clears it safely, and moves big files to iCloud Drive or Cloudflare R2. Free and open source.">
+<link rel="canonical" href="https://piyushgit011.github.io/attic-mac/">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://piyushgit011.github.io/attic-mac/">
+<meta property="og:title" content="Attic: free up your Mac, keep everything">
+<meta property="og:description" content="See what's filling your disk, clear out what you don't need, and move big files to iCloud Drive or Cloudflare R2. Free and open source.">
 <meta property="og:image" content="https://piyushgit011.github.io/attic-mac/images/banner.png">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="color-scheme" content="light dark">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"SoftwareApplication","name":"Attic","operatingSystem":"macOS 14 or later","applicationCategory":"UtilitiesApplication","description":"Attic shows what is filling your Mac's disk, clears it safely, and moves big files to iCloud Drive or Cloudflare R2.","url":"https://piyushgit011.github.io/attic-mac/","downloadUrl":"https://github.com/piyushgit011/attic-mac/releases/latest/download/Attic.dmg","image":"https://piyushgit011.github.io/attic-mac/images/banner.png","license":"https://opensource.org/license/mit","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+</script>
 <link rel="icon" href="images/icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -87,6 +93,12 @@
   .points div h3 { font-size: 17px; }
   .points div p { color: var(--dim); margin: 6px 0 0; font-size: 15px; }
 
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 54px; text-align: left; }
+  .step { background: var(--panel); border: 1px solid var(--line); border-radius: 20px; padding: 26px; }
+  .step .num { font-weight: 700; font-size: 15px; color: var(--orange); }
+  .step h3 { margin-top: 8px; }
+  .step p { color: var(--dim); margin: 8px 0 0; font-size: 15.5px; }
+
   .tile { background: var(--bg2); border-radius: 28px; padding: 56px 56px 0; overflow: hidden; }
   .tile .shot { border-radius: 16px 16px 0 0; box-shadow: 0 -2px 30px rgba(0,0,0,0.06); }
   .duo { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; }
@@ -137,7 +149,7 @@
   @media (max-width: 900px) {
     nav .links { display: none; }
     .points, .cards3, .keys { grid-template-columns: 1fr 1fr; }
-    .duo, .ai { grid-template-columns: 1fr; }
+    .duo, .ai, .steps { grid-template-columns: 1fr; }
     .ai { padding: 32px; }
     .tile { padding: 28px 22px 0; }
     section { padding-top: 88px; }
@@ -154,10 +166,10 @@
   <div class="wrap">
     <a class="brand" href="#"><img src="images/icon.png" alt="">Attic</a>
     <div class="links">
+      <a href="#cleanup">Clean Up</a>
+      <a href="#cloud">Offload</a>
       <a href="#folders">Folders</a>
       <a href="#search">Search</a>
-      <a href="#cleanup">Clean Up</a>
-      <a href="#cloud">R2 &amp; iCloud</a>
       <a href="#ai">On-device AI</a>
       <a href="#finder">vs Finder</a>
       <a href="https://github.com/piyushgit011/attic-mac">GitHub</a>
@@ -170,8 +182,8 @@
   <div class="wrap">
     <img class="icon" src="images/icon.png" alt="Attic app icon">
     <div class="eyebrow" style="margin-top:18px">Attic 1.3 · Free and open source</div>
-    <h1>The Finder alternative<br><span class="grad">that frees up your Mac.</span></h1>
-    <p class="lead">Every folder with big, clear thumbnails. A search that understands plain English. And a calm, safe way to clear out what you don't need, or move it to Cloudflare R2 or iCloud Drive.</p>
+    <h1>Free up your Mac.<br><span class="grad">Keep everything.</span></h1>
+    <p class="lead">Attic shows what's really filling your disk, System Data included, and helps you clear it safely. Files you want to keep but don't need every day move to iCloud Drive or Cloudflare R2, with a placeholder left behind.</p>
     <div class="ctas">
       <a class="btn primary" href="https://github.com/piyushgit011/attic-mac/releases/latest/download/Attic.dmg">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M16.37 12.6c-.03-2.6 2.13-3.86 2.22-3.92-1.21-1.77-3.1-2.01-3.77-2.04-1.6-.16-3.13.95-3.94.95-.82 0-2.07-.93-3.4-.9-1.75.03-3.36 1.02-4.26 2.58-1.82 3.15-.46 7.81 1.3 10.37.87 1.25 1.9 2.65 3.24 2.6 1.3-.05 1.8-.84 3.37-.84 1.57 0 2.02.84 3.4.81 1.4-.02 2.29-1.27 3.14-2.53.99-1.45 1.4-2.86 1.42-2.93-.03-.01-2.72-1.04-2.72-4.15zM13.78 4.95c.71-.87 1.2-2.07 1.06-3.27-1.03.04-2.28.69-3.02 1.55-.66.76-1.24 1.99-1.09 3.16 1.15.09 2.33-.58 3.05-1.44z"/></svg>
@@ -180,17 +192,62 @@
       <a class="btn ghost" href="#film">Watch the film ›</a>
       <a class="btn ghost" href="https://github.com/piyushgit011/attic-mac">View on GitHub ›</a>
     </div>
-    <div class="meta">Free · MIT licensed · macOS 14 or later · Apple silicon &amp; Intel · Notarized by Apple</div>
+    <div class="meta">Free during launch · Open source (MIT) · macOS 14 or later · Apple silicon &amp; Intel · Notarized by Apple</div>
     <div class="film" id="film">
       <video src="media/attic-film.mp4" poster="images/video-poster.jpg" controls playsinline preload="metadata"></video>
+    </div>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><h3>See what's using it</h3><p>Storage measures the whole disk, including what macOS calls System Data: caches, developer tools, simulators and swap.</p></div>
+      <div class="step"><div class="num">2</div><h3>Clear what you don't need</h3><p>Forgotten downloads, duplicates, old installers and project folders that can be rebuilt. You review everything, and it goes to the Trash.</p></div>
+      <div class="step"><div class="num">3</div><h3>Offload what you want to keep</h3><p>Big files move to iCloud Drive or your own Cloudflare R2 bucket. A placeholder stays in the folder, and opening it brings the file back.</p></div>
     </div>
   </div>
 </header>
 
+<section id="cleanup">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Clean Up</span>
+      <h2>Gigabytes back.<br>Safely.</h2>
+      <p class="lead">Attic finds the things you forgot about and shows what they're worth. You review everything, and it all goes to the Trash, so you can put it back.</p>
+    </div>
+    <div class="tile"><div class="shot"><img src="gifs/cleanup.gif" alt="Clean Up, Duplicates and Deep Clean" loading="lazy"></div></div>
+    <div class="cards3">
+      <div class="card"><div class="ico">✨</div><h3>Clean Up cards</h3><p>Forgotten downloads, old installers, old screenshots, big old videos and apps you haven't opened in months.</p></div>
+      <div class="card"><div class="ico">🪞</div><h3>Duplicates</h3><p>Identical files found by their contents. One copy stays; click another to keep it instead. APFS clones are counted correctly.</p></div>
+      <div class="card"><div class="ico">🛠️</div><h3>Deep Clean</h3><p><code>node_modules</code>, Xcode builds, Python environments and caches. Projects you're working on are never picked.</p></div>
+      <div class="card"><div class="ico">📊</div><h3>Storage</h3><p>What “System Data” really is: projects, app data, caches, developer tools, simulators, swap and macOS.</p></div>
+      <div class="card"><div class="ico">🧠</div><h3>Memory &amp; Swap</h3><p>See how much swap is on your disk and which apps hold memory, with Quit right there.</p></div>
+      <div class="card"><div class="ico">📥</div><h3>Downloaded From</h3><p>Every download grouped by where it came from: Gmail, Slack, ChatGPT, GitHub or any website.</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="cloud">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Offload</span>
+      <h2>Big files in the cloud.<br>A placeholder on your Mac.</h2>
+      <p class="lead">Move big files to your own Cloudflare R2 bucket or to iCloud Drive. Attic removes the copy on your Mac only after the cloud copy checks out, and app libraries like Photos always stay put.</p>
+    </div>
+    <div class="tile"><div class="shot"><img src="gifs/offload.gif" alt="Offloading videos to Cloudflare R2" loading="lazy"></div></div>
+    <div class="tablewrap" style="margin-top:22px">
+      <table>
+        <tr><th></th><th>Cloudflare R2</th><th>iCloud Drive</th></tr>
+        <tr><td>Where it goes</td><td>A private bucket of your own</td><td>iCloud Drive ▸ Attic</td></tr>
+        <tr><td>What stays on your Mac</td><td>A tiny <code>name.ext.attic</code> placeholder</td><td>A link in the original folder</td></tr>
+        <tr><td>Getting it back</td><td>Double-click the placeholder</td><td>Just open it</td></tr>
+        <tr><td>Safety check</td><td>MD5 on every part, then a size check in R2</td><td>Waits for iCloud to confirm the upload</td></tr>
+        <tr><td>Cost</td><td>About $0.015 per GB a month, no download fees</td><td>Your iCloud plan</td></tr>
+      </table>
+    </div>
+  </div>
+</section>
+
 <section id="folders">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">Folders</span>
+      <span class="eyebrow">Also a Finder alternative</span>
       <h2>Every folder.<br>Finally easy to see.</h2>
       <p class="lead">Your home folder, Desktop, Documents, Downloads and the rest open right in Attic. Folders show the files inside them, files show big thumbnails, and sizes appear as you browse.</p>
     </div>
@@ -242,46 +299,6 @@
   </div>
 </section>
 
-<section id="cleanup">
-  <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">Clean Up</span>
-      <h2>Gigabytes back.<br>Safely.</h2>
-      <p class="lead">Attic finds the things you forgot about and shows what they're worth. You review everything, and it all goes to the Trash, so you can put it back.</p>
-    </div>
-    <div class="tile"><div class="shot"><img src="gifs/cleanup.gif" alt="Clean Up, Duplicates and Deep Clean" loading="lazy"></div></div>
-    <div class="cards3">
-      <div class="card"><div class="ico">✨</div><h3>Clean Up cards</h3><p>Forgotten downloads, old installers, old screenshots, big old videos and apps you haven't opened in months.</p></div>
-      <div class="card"><div class="ico">🪞</div><h3>Duplicates</h3><p>Identical files found by their contents. One copy stays; click another to keep it instead. APFS clones are counted correctly.</p></div>
-      <div class="card"><div class="ico">🛠️</div><h3>Deep Clean</h3><p><code>node_modules</code>, Xcode builds, Python environments and caches. Projects you're working on are never picked.</p></div>
-      <div class="card"><div class="ico">📊</div><h3>Storage</h3><p>What “System Data” really is: projects, app data, caches, developer tools, simulators, swap and macOS.</p></div>
-      <div class="card"><div class="ico">🧠</div><h3>Memory &amp; Swap</h3><p>See how much swap is on your disk and which apps hold memory, with Quit right there.</p></div>
-      <div class="card"><div class="ico">📥</div><h3>Downloaded From</h3><p>Every download grouped by where it came from: Gmail, Slack, ChatGPT, GitHub or any website.</p></div>
-    </div>
-  </div>
-</section>
-
-<section id="cloud">
-  <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">Offload</span>
-      <h2>Big files in the cloud.<br>A placeholder on your Mac.</h2>
-      <p class="lead">Move big files to your own Cloudflare R2 bucket or to iCloud Drive. Attic removes the copy on your Mac only after the cloud copy checks out, and app libraries like Photos always stay put.</p>
-    </div>
-    <div class="tile"><div class="shot"><img src="gifs/offload.gif" alt="Offloading videos to Cloudflare R2" loading="lazy"></div></div>
-    <div class="tablewrap" style="margin-top:22px">
-      <table>
-        <tr><th></th><th>Cloudflare R2</th><th>iCloud Drive</th></tr>
-        <tr><td>Where it goes</td><td>A private bucket of your own</td><td>iCloud Drive ▸ Attic</td></tr>
-        <tr><td>What stays on your Mac</td><td>A tiny <code>name.ext.attic</code> placeholder</td><td>A link in the original folder</td></tr>
-        <tr><td>Getting it back</td><td>Double-click the placeholder</td><td>Just open it</td></tr>
-        <tr><td>Safety check</td><td>MD5 on every part, then a size check in R2</td><td>Waits for iCloud to confirm the upload</td></tr>
-        <tr><td>Cost</td><td>About $0.015 per GB a month, no download fees</td><td>Your iCloud plan</td></tr>
-      </table>
-    </div>
-  </div>
-</section>
-
 <section id="ai">
   <div class="wrap">
     <div class="ai">
@@ -311,13 +328,13 @@
     <div class="tablewrap">
       <table>
         <tr><th></th><th>Attic</th><th>Finder</th></tr>
+        <tr><td>Freeing up space</td><td class="yes">Clean Up, Deep Clean, Storage, swap, R2 and iCloud offload</td><td>System Settings ▸ Storage</td></tr>
+        <tr><td>Duplicates</td><td class="yes">Found by contents, with the real space you'd get back</td><td>Nothing built in</td></tr>
         <tr><td>Browsing a folder</td><td class="yes">Folder cards with files peeking out, big thumbnails, sizes measured for you</td><td>Icons, lists and columns; folder sizes off by default</td></tr>
         <tr><td>Seeing what you have</td><td class="yes">Images, videos, music, documents, archives and apps, each on its own shelf</td><td>Folder by folder</td></tr>
         <tr><td>Searching</td><td class="yes">“pdfs from last week”, shown as filters you can change</td><td>Search rules added one at a time</td></tr>
         <tr><td>Text in screenshots</td><td class="yes">Searchable, and copied from many images at once</td><td>Found by Spotlight; copied one image at a time</td></tr>
         <tr><td>Where downloads came from</td><td class="yes">Grouped by source</td><td>One file at a time in Get Info</td></tr>
-        <tr><td>Duplicates</td><td class="yes">Found by contents, with the real space you'd get back</td><td>Nothing built in</td></tr>
-        <tr><td>Freeing up space</td><td class="yes">Clean Up, Deep Clean, Storage, swap, R2 and iCloud offload</td><td>System Settings ▸ Storage</td></tr>
       </table>
     </div>
   </div>
@@ -350,7 +367,7 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Open source</span>
-      <h2>Free. Open. Yours.</h2>
+      <h2>Open. Private. Yours.</h2>
       <p class="lead">MIT licensed, native SwiftUI, no third-party dependencies, no account, no tracking and no server. Read every line or build it yourself.</p>
     </div>
     <pre>brew install xcodegen
@@ -370,29 +387,31 @@ open build/dd/Build/Products/Release/Attic.app</pre>
 <section id="faq">
   <div class="wrap" style="max-width:820px">
     <div class="section-head"><h2>Questions</h2></div>
+    <details><summary>My Mac says storage is almost full. Where do I start?</summary><p>Open Storage to see what's using the disk, then Clean Up for the quick wins: forgotten downloads, duplicates and old installers. If you write code, Deep Clean finds <code>node_modules</code>, build folders and caches that can be rebuilt. Everything you remove goes to the Trash first.</p></details>
+    <details><summary>What is System Data, and can Attic shrink it?</summary><p>System Data is where macOS puts whatever it can't label: caches, app data, developer tools, simulators and swap. Attic's Storage screen breaks it down and shows the biggest folders in each part. Deep Clean clears the parts that can be rebuilt, and Memory &amp; Swap shows which apps to quit so macOS can shrink its swap files.</p></details>
     <details><summary>Does Attic replace Finder?</summary><p>It sits next to it. Attic shows the same files and folders with bigger previews, better search and tools to free up space, and “Show in Finder” is always there.</p></details>
     <details><summary>Does Attic upload my files?</summary><p>Only files you choose to offload, and only to your own R2 bucket or your iCloud Drive. Browsing, search, text recognition and the AI all run on your Mac.</p></details>
     <details><summary>Will it delete things?</summary><p>Clean Up, Duplicates and Deep Clean move items to the Trash, so you can always put them back. Offloading removes a local copy only after the cloud copy checks out.</p></details>
     <details><summary>Why aren't my recent screenshots showing?</summary><p>If your Mac copies screenshots to the clipboard (⇧⌘5 ▸ Options ▸ Clipboard), no file is ever saved. Turn on Keep Screenshot History in Attic and each new one is saved to Pictures ▸ Screenshots.</p></details>
     <details><summary>What do I need for the AI search?</summary><p>A Mac with Apple Intelligence turned on (macOS 26 or later). Without it, search still works using Attic's own rules.</p></details>
-    <details><summary>Is it really free?</summary><p>Yes. MIT licensed, no subscription, no account. If R2 is your offload target, Cloudflare bills you directly for storage (about $0.015 per GB a month).</p></details>
+    <details><summary>Is it free?</summary><p>Yes. Attic is free while it's new, with no account and no subscription. The code is MIT licensed and stays that way. Later on, the ready-to-run, notarized download may become a small one-time purchase, and you will always be able to build it yourself. If R2 is your offload target, Cloudflare bills you directly for storage (about $0.015 per GB a month).</p></details>
   </div>
 </section>
 
 <div class="final">
   <div class="wrap">
     <img src="images/icon.png" alt="">
-    <h2 style="margin-top:18px">Give your files<br><span class="grad">a home that's easy to see.</span></h2>
+    <h2 style="margin-top:18px">See where your space went.<br><span class="grad">Then take it back.</span></h2>
     <div class="ctas">
       <a class="btn primary" href="https://github.com/piyushgit011/attic-mac/releases/latest/download/Attic.dmg">Download Attic for Mac</a>
     </div>
-    <div class="meta">Free and open source · macOS 14 or later</div>
+    <div class="meta">Free during launch · Open source · macOS 14 or later</div>
   </div>
 </div>
 
 <footer>
   <div class="wrap">
-    <span>Attic · Free and open source (MIT). Not made by or affiliated with Apple.</span>
+    <span>Attic · Open source (MIT). Not made by or affiliated with Apple.</span>
     <span><a href="https://github.com/piyushgit011/attic-mac">GitHub</a> · <a href="https://github.com/piyushgit011/attic-mac/releases">Releases</a> · <a href="https://github.com/piyushgit011/attic-mac/blob/main/CHANGELOG.md">Changelog</a></span>
   </div>
 </footer>

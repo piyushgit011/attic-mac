@@ -18,9 +18,10 @@
 </p>
 
 <p align="center">
-  <b>Attic is a free, open-source Finder alternative for your Mac.</b><br>
-  Every folder with big, clear thumbnails, a search that understands plain English, and a quick way to clear out<br>
-  what you don't need, or move it to <b>Cloudflare R2</b> or <b>iCloud Drive</b> and keep a placeholder you can double-click to bring it back.
+  <b>Attic frees up space on your Mac without losing anything.</b><br>
+  It shows what's really filling your disk, clears out what you don't need, and moves big files to<br>
+  <b>iCloud Drive</b> or <b>Cloudflare R2</b>, leaving a placeholder you can open to bring them back.<br>
+  It's also a clearer way to browse and search your files than Finder. Free and open source.
 </p>
 
 <p align="center">
@@ -39,49 +40,6 @@ Grab **Attic.dmg** from the [latest release](https://github.com/piyushgit011/att
 The first time you open it, macOS asks to let Attic see your Desktop, Documents and Downloads. That's what lets it show your files and work out what's using space.
 
 ## What it does
-
-### 📁 Every folder, the way Finder should show it
-
-Locations in the sidebar (your home folder, Desktop, Documents, Downloads, Pictures, Movies, Music, Developer, iCloud Drive and Applications) open like Finder, only clearer. Folders are cards with a few of their files peeking out, files are big thumbnails with their kind and size, and a path bar at the top takes you back up.
-
-- **Explore:** double-click to open a folder, ⌘[ and ⌘] to go back and forward, ⌘↑ for the folder above, ⇧⌘G to go to any path.
-- **Organize:** drag files onto a folder (in the grid, the path bar or the sidebar) to move them, hold ⌥ to copy. New Folder (⇧⌘N), Rename, Move to Trash, Copy Path.
-- **See what's big:** folder sizes are measured in the background as you browse, so you can sort a folder by size.
-- **Pin any folder** to the sidebar, show hidden files with ⇧⌘., and changes made in Finder appear right away.
-
-<p align="center"><img src="docs/gifs/folders.gif" alt="Browsing folders in Attic" width="90%"></p>
-
-<table>
-  <tr>
-    <td><img src="docs/images/folders.jpg" alt="Your home folder in Attic"></td>
-    <td><img src="docs/images/folder-downloads.jpg" alt="The Downloads folder in Attic"></td>
-  </tr>
-</table>
-
-### 🎨 Two looks: Playful and Minimal
-
-Playful gives every kind of file its own soft colour. Minimal is black, white and grey, with your files peeking out of plain folders. Switch from the top bar or with ⌃⌘T, and pick Light, Dark or your Mac's setting in Settings.
-
-<p align="center"><img src="docs/gifs/looks.gif" alt="Switching between the Playful and Minimal looks" width="90%"></p>
-
-<table>
-  <tr>
-    <td><img src="docs/images/home.jpg" alt="Attic Home in the Playful look"></td>
-    <td><img src="docs/images/home-minimal.jpg" alt="Attic Home in the Minimal look"></td>
-  </tr>
-</table>
-
-### 🔎 Search the way you talk
-
-Type "pdfs from last week over 5 mb" or "screenshots with wifi password". Attic shows how it read your search as chips you can remove one by one, and you can narrow any list with From, Kind, Date and Size filters. It also reads the text inside your screenshots on your Mac (Apple Vision), so you can find that Wi‑Fi password, tracking number or receipt by what it says. Save a search to the sidebar and it always shows what matches right now.
-
-<p align="center"><img src="docs/gifs/search.gif" alt="Plain-English search finding a screenshot by the text inside it" width="90%"></p>
-
-### 📸 Screenshots, even the ones you only copied
-
-If your Mac copies screenshots to the clipboard instead of saving them, they're gone once you copy something else. Turn on **Keep Screenshot History** and Attic saves each new one to Pictures ▸ Screenshots, where search can read the text in it. It only keeps real screenshots (macOS tags them), not other images you copy.
-
-<p align="center"><img src="docs/images/screenshots.jpg" alt="Screenshots in Attic" width="90%"></p>
 
 ### ✨ Clean Up, Duplicates and Deep Clean
 
@@ -137,6 +95,49 @@ Files already in iCloud (Desktop & Documents) just get **Remove Download**: they
 
 The R2 browser also works on its own, like a Finder window for your bucket: upload by drag and drop, download, make folders, and copy private links that expire after 7 days.
 
+### 📁 Every folder, the way Finder should show it
+
+Locations in the sidebar (your home folder, Desktop, Documents, Downloads, Pictures, Movies, Music, Developer, iCloud Drive and Applications) open like Finder, only clearer. Folders are cards with a few of their files peeking out, files are big thumbnails with their kind and size, and a path bar at the top takes you back up.
+
+- **Explore:** double-click to open a folder, ⌘[ and ⌘] to go back and forward, ⌘↑ for the folder above, ⇧⌘G to go to any path.
+- **Organize:** drag files onto a folder (in the grid, the path bar or the sidebar) to move them, hold ⌥ to copy. New Folder (⇧⌘N), Rename, Move to Trash, Copy Path.
+- **See what's big:** folder sizes are measured in the background as you browse, so you can sort a folder by size.
+- **Pin any folder** to the sidebar, show hidden files with ⇧⌘., and changes made in Finder appear right away.
+
+<p align="center"><img src="docs/gifs/folders.gif" alt="Browsing folders in Attic" width="90%"></p>
+
+<table>
+  <tr>
+    <td><img src="docs/images/folders.jpg" alt="Your home folder in Attic"></td>
+    <td><img src="docs/images/folder-downloads.jpg" alt="The Downloads folder in Attic"></td>
+  </tr>
+</table>
+
+### 🎨 Two looks: Playful and Minimal
+
+Playful gives every kind of file its own soft colour. Minimal is black, white and grey, with your files peeking out of plain folders. Switch from the top bar or with ⌃⌘T, and pick Light, Dark or your Mac's setting in Settings.
+
+<p align="center"><img src="docs/gifs/looks.gif" alt="Switching between the Playful and Minimal looks" width="90%"></p>
+
+<table>
+  <tr>
+    <td><img src="docs/images/home.jpg" alt="Attic Home in the Playful look"></td>
+    <td><img src="docs/images/home-minimal.jpg" alt="Attic Home in the Minimal look"></td>
+  </tr>
+</table>
+
+### 🔎 Search the way you talk
+
+Type "pdfs from last week over 5 mb" or "screenshots with wifi password". Attic shows how it read your search as chips you can remove one by one, and you can narrow any list with From, Kind, Date and Size filters. It also reads the text inside your screenshots on your Mac (Apple Vision), so you can find that Wi‑Fi password, tracking number or receipt by what it says. Save a search to the sidebar and it always shows what matches right now.
+
+<p align="center"><img src="docs/gifs/search.gif" alt="Plain-English search finding a screenshot by the text inside it" width="90%"></p>
+
+### 📸 Screenshots, even the ones you only copied
+
+If your Mac copies screenshots to the clipboard instead of saving them, they're gone once you copy something else. Turn on **Keep Screenshot History** and Attic saves each new one to Pictures ▸ Screenshots, where search can read the text in it. It only keeps real screenshots (macOS tags them), not other images you copy.
+
+<p align="center"><img src="docs/images/screenshots.jpg" alt="Screenshots in Attic" width="90%"></p>
+
 ### ✺ AI that stays on your Mac
 
 Attic uses the intelligence that already ships with macOS, and nothing is ever sent anywhere:
@@ -170,13 +171,13 @@ Keep using both: "Show in Finder" is always one click away.
 
 | | Attic | Finder |
 |---|---|---|
+| Freeing up space | Clean Up cards, Deep Clean, Storage, swap, R2 and iCloud offload | System Settings ▸ Storage |
+| Duplicates | Found by contents, with the real space you'd get back | Nothing built in |
 | Browsing a folder | Folder cards with files peeking out, big thumbnails, sizes measured for you | Icons, lists and columns; folder sizes off by default |
 | Seeing what you have | Images, videos, music, documents, archives and apps, each on its own shelf | Folder by folder |
 | Searching | "pdfs from last week", shown as filters you can change | Search rules added one at a time |
 | Text inside screenshots | Searchable, and copied from many images at once | Spotlight can find it; Preview copies one at a time |
 | Where a download came from | Grouped by source | One file at a time in Get Info |
-| Duplicates | Found by contents, with the real space you'd get back | Nothing built in |
-| Freeing up space | Clean Up cards, Deep Clean, Storage, swap, R2 and iCloud offload | System Settings ▸ Storage |
 
 ## Keyboard shortcuts
 
@@ -212,7 +213,9 @@ Other buckets on the same account are **read-only** in Attic unless you turn on 
 
 ## Open source
 
-Attic is MIT licensed and has no server, account or tracking. It's a Finder alternative built in the open: if Finder does something better, open an issue. Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), and report security issues privately as described in [SECURITY.md](SECURITY.md). Every push is built and self-tested on a GitHub Mac runner.
+Attic is MIT licensed and has no server, account or tracking. It's built in the open: if Finder or another cleaner does something better, open an issue. Contributions are welcome. See [CONTRIBUTING.md](CONTRIBUTING.md), and report security issues privately as described in [SECURITY.md](SECURITY.md). Every push is built and self-tested on a GitHub Mac runner.
+
+Attic is free while it's new. The code stays MIT licensed. Later on, the ready-to-run, notarized download may become a small one-time purchase, and you will always be able to build it yourself.
 
 ## Build from source
 

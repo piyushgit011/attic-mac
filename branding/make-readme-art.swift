@@ -72,10 +72,10 @@ if let homeURL = shotURL("home") {
     let icon = load(root.appendingPathComponent("branding/attic-icon-1024.png"))
     ctx.draw(icon, in: CGRect(x: 110, y: H - 150 - 260, width: 260, height: 260))
     text(ctx, "Attic", 140, H - 600, 190, .bold, .white, rounded: true, kern: -4)
-    text(ctx, "The Finder alternative", 146, H - 700, 62, .semibold, NSColor(white: 1, alpha: 0.92))
-    text(ctx, "that frees up your Mac.", 146, H - 778, 62, .semibold, NSColor(srgbRed: 1, green: 0.72, blue: 0.52, alpha: 1))
-    let bullets = ["Browse every folder with big, clear thumbnails", "Search in plain English, even inside screenshots",
-                   "Clean Up, Duplicates and Deep Clean", "Offload to Cloudflare R2 or iCloud Drive"]
+    text(ctx, "Free up your Mac.", 146, H - 700, 62, .semibold, NSColor(white: 1, alpha: 0.92))
+    text(ctx, "Keep everything.", 146, H - 778, 62, .semibold, NSColor(srgbRed: 1, green: 0.72, blue: 0.52, alpha: 1))
+    let bullets = ["See what's using your disk, even System Data", "Clean Up, Duplicates and Deep Clean",
+                   "Offload to iCloud Drive or Cloudflare R2", "A clearer Finder with plain-English search"]
     for (i, b) in bullets.enumerated() {
         ctx.setFillColor(color(0xFF9A5A)); ctx.fillEllipse(in: CGRect(x: 150, y: H - 885 - CGFloat(i) * 62, width: 14, height: 14))
         text(ctx, b, 184, H - 906 - CGFloat(i) * 62, 36, .medium, NSColor(white: 1, alpha: 0.72))

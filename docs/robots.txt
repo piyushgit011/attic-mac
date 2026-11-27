@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://piyushgit011.github.io/attic-mac/sitemap.xml
